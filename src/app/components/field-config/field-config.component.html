@@ -1,0 +1,180 @@
+<div class="field-config-panel">
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <h3 class="text-lg font-semibold text-gray-800">Field Settings</h3>
+    <button 
+      (click)="close.emit()"
+      class="close-btn p-1 text-gray-400 hover:text-gray-600"
+    >
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Panel Content -->
+  <div class="panel-content">
+    <!-- Field Label -->
+    <div class="form-group">
+      <label class="form-label">Field Label</label>
+      <input 
+        type="text" 
+        [(ngModel)]="config.label"
+        class="form-control"
+        placeholder="Enter field label"
+      />
+    </div>
+
+    <!-- Field Type (Read-only) -->
+    <div class="form-group">
+      <label class="form-label">Field Type</label>
+      <input 
+        type="text" 
+        [value]="getFieldTypeName()"
+        class="form-control"
+        readonly
+      />
+    </div>
+
+    <!-- Placeholder -->
+    <div class="form-group">
+      <label class="form-label">Placeholder</label>
+      <input 
+        type="text" 
+        [(ngModel)]="config.placeholder"
+        class="form-control"
+        placeholder="Enter placeholder text"
+      />
+    </div>
+
+    <!-- Default Value -->
+    <div class="form-group">
+      <label class="form-label">Default Value</label>
+      <input 
+        type="text" 
+        [(ngModel)]="config.defaultValue"
+        class="form-control"
+        placeholder="Set a default value"
+      />
+    </div>
+
+    <!-- Required Field Toggle -->
+    <div class="form-group">
+      <div class="flex items-center">
+        <input 
+          type="checkbox" 
+          [(ngModel)]="config.required"
+          class="form-check-input"
+          id="required-field"
+        />
+        <label for="required-field" class="form-label ml-2 mb-0">
+          Required Field
+        </label>
+      </div>
+    </div>
+
+    <!-- Options (for radio, checkbox, dropdown) -->
+    @if (isOptionField()) {
+      <div class="form-group">
+        <label class="form-label">Options</label>
+        <div class="options-container">
+          @for (option of config.options; track $index; let index = $index) {
+            <div class="option-item">
+              <input 
+                type="text" 
+                [(ngModel)]="config.options[index]"
+                class="form-control"
+                placeholder="Option text"
+              />
+              <button 
+                (click)="removeOption(index)"
+                class="remove-option-btn p-1 text-red-500 hover:text-red-700"
+                title="Remove option"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          }
+        </div>
+        <button 
+          (click)="addOption()"
+          class="btn btn-sm btn-outline mt-2"
+        >
+          <i class="fas fa-plus"></i> Add Option
+        </button>
+      </div>
+    }
+
+    <!-- Validation Rules -->
+    <div class="form-group">
+      <label class="form-label font-semibold">Validation Rules</label>
+      
+      <!-- Min Length -->
+      @if (supportsTextValidation()) {
+        <div class="validation-item">
+          <label class="form-label text-sm">Min Length</label>
+          <input 
+            type="number" 
+            [(ngModel)]="config.validation.minLength"
+            class="form-control"
+            placeholder="Minimum characters"
+            min="0"
+          />
+        </div>
+      }
+
+      <!-- Max Length -->
+      @if (supportsTextValidation()) {
+        <div class="validation-item">
+          <label class="form-label text-sm">Max Length</label>
+          <input 
+            type="number" 
+            [(ngModel)]="config.validation.maxLength"
+            class="form-control"
+            placeholder="Maximum characters"
+            min="0"
+          />
+        </div>
+      }
+
+      <!-- Pattern (Regex) -->
+      @if (supportsPatternValidation()) {
+        <div class="validation-item">
+          <label class="form-label text-sm">Pattern (Regex)</label>
+          <input 
+            type="text" 
+            [(ngModel)]="config.validation.pattern"
+            class="form-control"
+            placeholder="e.g., ^[a-zA-Z0-9]*$"
+          />
+          <p class="text-xs text-gray-500 mt-1">Optional: Regular expression for validation</p>
+        </div>
+      }
+    </div>
+
+    <!-- Field ID (Display only) -->
+    <div class="form-group">
+      <label class="form-label text-sm text-gray-600">Field ID</label>
+      <input 
+        type="text" 
+        [value]="config.id"
+        class="form-control"
+        readonly
+      />
+    </div>
+  </div>
+
+  <!-- Panel Footer -->
+  <div class="panel-footer">
+    <button 
+      (click)="close.emit()"
+      class="btn btn-outline"
+    >
+      Cancel
+    </button>
+    <button 
+      (click)="handleSave()"
+      class="btn btn-primary"
+    >
+      <i class="fas fa-save"></i> Save Changes
+    </button>
+  </div>
+</div>

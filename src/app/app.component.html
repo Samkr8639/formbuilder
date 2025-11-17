@@ -1,0 +1,177 @@
+<div class="flex h-screen bg-gray-50">
+  <!-- Loading overlay -->
+  @if (isLoading()) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg flex items-center space-x-3">
+      <i class="fas fa-spinner fa-spin text-primary"></i>
+      <span>Loading...</span>
+    </div>
+  </div>
+  }
+
+  <!-- Sidebar - Form List -->
+  <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-bold text-gray-800">FormCraft</h1>
+        <div class="flex space-x-2">
+          <button (click)="userRole.set(userRole() === 'admin' ? 'user' : 'admin')"
+            [class]="userRole() === 'admin' ? 'px-3 py-1 text-xs rounded-full bg-primary text-white' : 'px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-700'">
+            {{ userRole() === 'admin' ? 'Admin' : 'User' }}
+          </button>
+          <!-- <button (click)="loadFormsFromBackend()"
+            class="px-3 py-1 text-xs rounded-full bg-blue-500 text-white hover:bg-blue-600"
+            title="Refresh from backend">
+            <i class="fas fa-sync-alt"></i>
+          </button> -->
+        </div>
+      </div>
+
+      @if (userRole() === 'admin') {
+      <div class="flex space-x-2 mb-2">
+        <button (click)="createNewForm()" class="flex-1 btn btn-primary">
+          <i class="fas fa-plus"></i>&nbsp;
+          <span>New Form</span>
+        </button>
+      </div>
+      }
+
+      <div class="relative">
+        <input type="text" placeholder="Search forms..." class="w-full form-control" [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)" />
+        <i class="fas fa-search absolute left-60 top-3 text-gray-400"></i>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-4">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase mb-2">Your Forms</h2>
+
+      @if (filteredForms().length === 0) {
+      <div class="text-center py-8 text-gray-500">
+        <i class="fas fa-inbox text-4xl mb-2"></i>
+        <p>No forms found</p>
+        <button (click)="loadFormsFromBackend()" class="mt-2 text-primary hover:text-indigo-700 text-sm">
+          Reload from backend
+        </button>
+      </div>
+      } @else {
+      <div class="space-y-3">
+        @for (form of filteredForms(); track form.id) {
+        <div
+          [class]="'form-list-item p-3 bg-white rounded-lg border ' + (currentForm().id === form.id ? 'border-primary shadow-md' : 'border-gray-200')" [style]="'height:80px'">
+          <div class="flex justify-between items-start">
+            <div class="flex-1 cursor-pointer" (click)="selectForm(form.id!)">
+              <h5 class="font-medium text-gray-800">{{ form.title }}</h5>
+              <div class="flex items-center space-x-2 mt-1">
+                <p class="text-xs text-gray-500">
+                  {{ form.fields.length }} {{ form.fields.length === 1 ? 'field' : 'fields' }}
+                </p>
+                @if (form.formId) {
+                <span class="text-xs bg-green-100 text-green-800 px-1 rounded">DB</span>
+                }
+                @if (form.createdDate) {
+                <span class="text-xs text-gray-400">
+                  {{ form.createdDate | date:'shortDate' }}
+                </span>
+                }
+              </div>
+            </div>
+
+            @if (userRole() === 'admin') {
+            <div class="flex space-x-1">
+              <button (click)="duplicateForm(form.id!)"
+                class="p-1 text-gray-500 hover:text-primary transition-colors copy-delete" title="Duplicate form">
+                <i class="fas fa-copy"></i>
+              </button>
+              <button (click)="deleteForm(form.id!)"
+                class="p-1 text-gray-500 hover:text-red-500 transition-colors copy-delete" title="Delete form">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <h2 class="text-lg font-semibold text-gray-800">
+          {{ currentForm().title || 'Untitled Form' }}
+          @if (currentForm().formId) {
+          <span class="text-sm text-green-600 ml-2">(ID: {{ currentForm().formId }})</span>
+          }
+        </h2>
+
+        @if (userRole() === 'admin' && isBuilderTab() && filteredForms().length > 0) {
+        <div class="flex space-x-2">
+          <button (click)="isPreviewMode.set(!isPreviewMode())"
+            [class]="'px-3 py-1 rounded-lg flex items-center space-x-1 ' + (isPreviewMode() ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')">
+            <i [class]="'fas ' + (isPreviewMode() ? 'fa-edit' : 'fa-eye')"></i>
+            <span>{{ isPreviewMode() ? 'Edit' : 'Preview' }}</span>
+          </button>
+
+          @if(!isPreviewMode()){
+          <button (click)="saveForm()"
+            class="px-3 py-1 bg-green-500 text-white rounded-lg flex items-center space-x-1 hover:bg-green-600 transition-colors">
+            <i class="fas fa-save"></i>
+            <span>Save</span>
+          </button>
+          }
+
+          @if(isPreviewMode()){
+          <button (click)="saveFormToBackend()"
+            [class]="'px-3 py-1 rounded-lg flex items-center space-x-1 ' + (currentForm().formId ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white')"
+            [class.opacity-50]="!currentForm().id" [class.cursor-not-allowed]="!currentForm().id"
+            [attr.disabled]="!currentForm().id ? true : null">
+            <i class="fas fa-database"></i>
+            <span>{{ currentForm().formId ? 'Update DB' : 'Save to DB' }}</span>
+          </button>
+          }
+        </div>
+        }
+      </div>
+
+      <div class="flex space-x-2">
+        <button
+          [class]="'px-4 py-2 rounded-lg ' + (activeTab() === 'builder' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"
+          (click)="activeTabs('builder')">
+          Builder
+        </button>
+        <button
+          [class]="'px-4 py-2 rounded-lg ' + (activeTab() === 'responses' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"
+          (click)="activeTabs('responses')">
+          Responses
+        </button>
+        <button
+          [class]="'px-4 py-2 rounded-lg ' + (activeTab() === 'themes' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"
+          (click)="activeTabs('themes')">
+          Themes
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="flex-1 overflow-auto p-6">
+      @if (activeTab() === 'builder') {
+      <app-form-builder [currentForm]="currentForm()" (formUpdate)="updateCurrentForm($event)"
+        (saveToDb)="onSaveToDb($event)" [isPreviewMode]="isPreviewMode()" [userRole]="userRole()" [hasForms]="filteredForms().length > 0"/>
+      }
+
+      @if (activeTab() === 'responses') {
+      <app-responses-panel [currentForm]="currentForm()" [hasForms]="filteredForms().length > 0"/>
+      }
+
+      @if (activeTab() === 'themes' && userRole() === 'admin') {
+      <app-themes-panel [currentForm]="currentForm()" (themeUpdate)="onThemeUpdate($event)"
+        (themeSaved)="onThemeSaved()" />
+      }
+    </div>
+  </div>
+</div>

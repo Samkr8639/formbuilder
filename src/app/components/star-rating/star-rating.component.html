@@ -1,0 +1,12 @@
+ <div class="star-rating">
+      @for (star of [1,2,3,4,5]; track star) {
+        <span
+          [class]="'star ' + (star <= (hover || rating) ? 'active' : '')"
+          (mouseenter)="hover = isEditing ? star : 0"
+          (mouseleave)="hover = 0"
+          (click)="onStarClick(star)"
+        >
+          ★
+        </span>
+      }
+    </div>

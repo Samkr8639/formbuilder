@@ -1,0 +1,145 @@
+/* Field Error Styling */
+.field-item.field-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0 -1rem;
+}
+
+.field-item {
+  transition: all 0.3s ease;
+}
+
+/* Error Messages Box */
+.field-error-box {
+  background-color: #fee2e2;
+  border-left: 4px solid #dc2626;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.field-error-box .text-red-700 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #991b1b;
+}
+
+.field-error-box .text-red-700 i {
+  flex-shrink: 0;
+}
+
+/* Error Input Styling */
+.form-control.border-red-500,
+input.border-red-500,
+select.border-red-500,
+textarea.border-red-500 {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.form-control.border-red-500:focus,
+input.border-red-500:focus,
+select.border-red-500:focus,
+textarea.border-red-500:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+  border-color: #dc2626 !important;
+}
+
+/* Validation Success Indicator */
+.field-item.field-valid input,
+.field-item.field-valid select,
+.field-item.field-valid textarea {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+/* Required Field Indicator */
+.required-indicator {
+  color: #ef4444;
+  font-weight: bold;
+  margin-left: 0.25rem;
+}
+
+/* Field Label */
+.field-item label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.field-item.field-error label {
+  color: #7f1d1d;
+}
+
+/* Date Input Styling */
+input[type="date"] {
+  position: relative;
+  padding-right: 2.5rem;
+}
+
+/* Date picker icon positioning */
+.relative i.fa-calendar {
+  pointer-events: none;
+  user-select: none;
+  font-size: 1rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #f3f4f6;
+}
+
+/* Enhanced date input appearance */
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+
+/* Chrome/Edge/Safari datepicker styling */
+input[type="date"]::-webkit-outer-spin-button,
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Firefox date input */
+input[type="date"]::-moz-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* Focus state for date input */
+input[type="date"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+}
+
+/* Date input with error */
+input[type="date"].border-red-500::-webkit-calendar-picker-indicator {
+  filter: hue-rotate(-10deg) saturate(150%);
+}
+
