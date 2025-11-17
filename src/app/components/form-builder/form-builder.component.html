@@ -24,7 +24,7 @@
           @if (isPreviewMode) {
             <app-form-preview 
               [form]="currentForm" 
-              [isPreview]="true"
+              [isPreview]="isPreviewMode"
               (saveToDb)="onSaveToDb($event)" 
             />
           } @else {

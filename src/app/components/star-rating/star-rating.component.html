@@ -1,12 +1,13 @@
- <div class="star-rating">
-      @for (star of [1,2,3,4,5]; track star) {
-        <span
-          [class]="'star ' + (star <= (hover || rating) ? 'active' : '')"
-          (mouseenter)="hover = isEditing ? star : 0"
-          (mouseleave)="hover = 0"
-          (click)="onStarClick(star)"
-        >
-          ★
-        </span>
-      }
+<div class="star-rating" [class.editing]="isEditing">
+  @for (star of [1,2,3,4,5]; track star) {
+    <div
+      class="star-wrapper"
+      [class]="'star ' + getStarClass(star)"
+      (mousemove)="onMouseMove($event, star)"
+      (mouseleave)="onMouseLeave()"
+      (click)="onStarClick($event, star)"
+    >
+      <span class="star-icon">★</span>
     </div>
+  }
+</div>

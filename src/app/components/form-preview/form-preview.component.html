@@ -57,12 +57,12 @@
           @case ('radio') {
           <div class="space-y-2">
             @for (option of field.options; track $index) {
-            <div class="flex items-center">
+            <div class="form-check items-center">
               <input type="radio" [id]="field.id + '-' + $index" [name]="field.id" [value]="option"
                 [checked]="formData()[field.id] === option"
                 (change)="handleInputChange(field.id, $any($event.target).value)" class="mr-2 form-check-input"
                 [required]="field.required" />
-              <label [attr.for]="field.id + '-' + $index">{{ option }}</label>
+              <label [attr.for]="field.id + '-' + $index" class="form-check-label">{{ option }}</label>
             </div>
             }
           </div>
@@ -70,11 +70,11 @@
           @case ('checkbox') {
           <div class="space-y-2">
             @for (option of field.options; track $index) {
-            <div class="flex items-center">
+            <div class="form-check items-center">
               <input type="checkbox" [id]="field.id + '-' + $index" [value]="option"
                 [checked]="formData()[field.id]?.includes(option) || false"
                 (change)="handleCheckboxChange(field.id, option, $event)" class="mr-2 form-check-input" />
-              <label [attr.for]="field.id + '-' + $index">{{ option }}</label>
+              <label [attr.for]="field.id + '-' + $index" class="form-check-label">{{ option }}</label>
             </div>
             }
           </div>
@@ -90,7 +90,11 @@
           </select>
           }
           @case ('rating') {
-          <app-star-rating [field]="field" [isEditing]="false" [value]="formData()[field.id] || 0"
+          <app-star-rating 
+            [field]="field" 
+            [isEditing]="true" 
+            [value]="formData()[field.id] || 0"
+            [allowHalfStar]="true"
             (onChange)="handleInputChange(field.id, $event)" />
           }
           @case ('date') {
