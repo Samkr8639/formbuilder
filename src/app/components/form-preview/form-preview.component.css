@@ -143,3 +143,92 @@ input[type="date"].border-red-500::-webkit-calendar-picker-indicator {
   filter: hue-rotate(-10deg) saturate(150%);
 }
 
+/* Character Count Display */
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+/* Warning color for character count */
+.text-warning {
+  color: #f59e0b !important;
+  font-weight: 600;
+}
+
+/* Character count styling */
+.character-count {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.character-count.warning {
+  color: #f59e0b;
+}
+
+.character-count.error {
+  color: #ef4444;
+}
+
+/* Validation hint */
+.validation-hint {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  color: #6b7280;
+}
+
+/* Real-time validation success */
+.validation-success input,
+.validation-success textarea {
+  border-color: #10b981 !important;
+  background-color: #f0fdf4 !important;
+}
+
+.validation-success input:focus,
+.validation-success textarea:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Progress bar for character count */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #6366f1;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.progress-bar-fill.warning {
+  background-color: #f59e0b;
+}
+
+.progress-bar-fill.error {
+  background-color: #ef4444;
+}
+
+

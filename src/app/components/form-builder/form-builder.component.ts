@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormFieldComponent } from '../form-field/form-field.component';
@@ -30,7 +30,7 @@ const fieldTypes: FieldType[] = [
   templateUrl: './form-builder.component.html',
   styleUrls: ['./form-builder.component.css']
 })
-export class FormBuilderComponent {
+export class FormBuilderComponent implements OnChanges {
 @Input() currentForm!: Form;
   @Input() isPreviewMode: boolean = false;
   @Input() userRole: 'admin' | 'user' = 'admin';
@@ -45,6 +45,13 @@ export class FormBuilderComponent {
   // Add this method to handle the saveToDb event from FormPreviewComponent
   onSaveToDb(formStructure: any): void {
     this.saveToDb.emit(formStructure);
+  }
+
+  // Close field config panel when switching to preview mode
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isPreviewMode'] && changes['isPreviewMode'].currentValue === true) {
+      this.fieldConfig = null;
+    }
   }
 
   addField(fieldType: string): void {

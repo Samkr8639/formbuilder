@@ -35,7 +35,7 @@ const initialFormState: Form = {
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  forms = signal<Form[]>([]);
+   forms = signal<Form[]>([]);
   currentForm = signal<Form>({ ...initialFormState });
   activeTab = signal<'builder' | 'responses' | 'themes'>('builder');
   isPreviewMode = signal(false);
@@ -94,6 +94,19 @@ export class AppComponent implements OnInit {
   }
 
   createNewForm(): void {
+    const currentForm = this.currentForm();
+    
+    // Check if current form exists and hasn't been saved to DB yet
+    if (currentForm.id && !currentForm.formId) {
+      Swal.fire({
+        title: 'Save Form First',
+        text: 'Please save the current form to the database before creating a new one.',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
     const newForm: Form = {
       ...initialFormState,
       id: Date.now().toString(),
@@ -102,6 +115,7 @@ export class AppComponent implements OnInit {
     this.currentForm.set(newForm);
     this.forms.update(forms => [...forms, newForm]);
     this.activeTab.set('builder');
+    this.toastr.info('New form created. Design and save to database when ready.');
   }
 
   // updateCurrentForm(updates: Partial<Form>): void {
@@ -280,7 +294,6 @@ private applyFormTheme(theme: FormTheme): void {
   }
 
   onThemeUpdate(themeUpdate: any): void {
-    debugger
     // Use a type assertion to bypass the type check
     this.currentForm.update(form => ({
       ...form,

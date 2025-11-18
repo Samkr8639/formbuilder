@@ -21,7 +21,8 @@ const PATTERN_VALIDATION_FIELDS = ['text', 'textarea', 'email'];
   selector: 'app-field-config',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './field-config.component.html'
+  templateUrl: './field-config.component.html',
+  styleUrls: ['./field-config.component.css']
 })
 export class FieldConfigComponent {
   @Input() field: any;

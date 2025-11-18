@@ -63,12 +63,20 @@ export class ResponsesPanelComponent implements OnInit {
       confirmButtonText: "Yes, delete it!"
     }).then((result) => {
       if (result.isConfirmed) {
-        //  this.submissions.update((forms => forms.filter(form => form.id !== formId)));
-
-       const submission =  this.submissions().find(form => form.id === formId)
-       this.formService.removeSubmission(this.currentForm.id, submission?.id)
+        // Find the submission to delete
+        const submission = this.submissions().find(form => form.id === formId);
         
+        // Delete from service
+        this.formService.removeSubmission(this.currentForm.id, submission?.id);
+        
+        // Update the submissions signal to remove the deleted response
+        this.submissions.update(submissions => 
+          submissions.filter(sub => sub.id !== formId)
+        );
+        
+        // Close the response detail panel
         this.closeResponse();
+        
         Swal.fire({
           title: "Deleted!",
           text: "The response has been deleted.",
