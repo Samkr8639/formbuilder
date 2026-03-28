@@ -85,7 +85,7 @@ export class FieldConfigComponent implements OnInit, OnChanges {
    * Check if field type supports pattern validation (regex)
    */
   supportsPatternValidation(): boolean {
-    return PATTERN_VALIDATION_FIELDS.includes(this.config.type);
+    return this.config.label?.toLowerCase().startsWith('email');
   }
 
   /**

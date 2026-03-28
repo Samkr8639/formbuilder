@@ -121,16 +121,18 @@
           }
         </div>
       </div>
-      
-      <!-- Field Configuration Panel -->
-      @if (fieldConfig && userRole === 'admin') {
+    </div>
+    
+    <!-- Field Configuration Panel - Fixed sidebar, not inside scroll container -->
+    @if (fieldConfig && userRole === 'admin') {
+      <div class="w-80 h-full overflow-y-auto" style="flex-shrink: 0;">
         <app-field-config 
           [field]="fieldConfig" 
           (fieldUpdate)="updateField(fieldConfig.id, $event)"
           (close)="fieldConfig = null"
         />
-      }
-    </div>
+      </div>
+    }
   </div>
 }@else{
         <div class="text-center text-gray-500 mt-50 border-2 border-dashed border-gray-300 rounded-lg p-10 no-forms-message">

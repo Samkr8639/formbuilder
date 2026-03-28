@@ -255,7 +255,6 @@ export class AppComponent implements OnInit {
     // Create a clean copy to prevent reference issues
     const selectedForm = { ...form };
     this.currentForm.set(selectedForm);
-    this.activeTab.set('builder');
     
     // Force a clean theme application
     this.applyFormTheme(selectedForm.theme);
