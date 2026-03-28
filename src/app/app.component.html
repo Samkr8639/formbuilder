@@ -159,9 +159,9 @@
     </header>
 
     <!-- Content Area -->
-    <div class="flex-1 overflow-auto p-6">
+    <div [class]="'flex-1 ' + (activeTab() === 'builder' ? 'overflow-hidden' : 'overflow-auto p-6')">
       @if (activeTab() === 'builder') {
-      <app-form-builder [currentForm]="currentForm()" (formUpdate)="updateCurrentForm($event)"
+      <app-form-builder class="block h-full" [currentForm]="currentForm()" (formUpdate)="updateCurrentForm($event)"
         (saveToDb)="onSaveToDb($event)" [isPreviewMode]="isPreviewMode()" [userRole]="userRole()" [hasForms]="filteredForms().length > 0"/>
       }
 

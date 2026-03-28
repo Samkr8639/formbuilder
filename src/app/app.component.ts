@@ -236,6 +236,7 @@ export class AppComponent implements OnInit {
       };
       this.forms.update(forms => [...forms, duplicatedForm]);
       this.currentForm.set(duplicatedForm);
+      this.activeTab.set('builder');
       this.saveForms();
     }
   }

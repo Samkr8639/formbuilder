@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormService } from '../../Service/form.service';
 import { Form, FormSubmission } from '../../Models/form.model';
@@ -11,7 +11,7 @@ import Swal from 'sweetalert2';
   templateUrl: './responses-panel.component.html',
   styleUrls: ['./responses-panel.component.css']
 })
-export class ResponsesPanelComponent implements OnInit {
+export class ResponsesPanelComponent implements OnInit, OnChanges {
   @Input() currentForm: Form | any;
   @Input() hasForms: boolean = true; // New input to check if there are forms available
 
@@ -21,7 +21,17 @@ export class ResponsesPanelComponent implements OnInit {
   constructor(private formService: FormService) { }
 
   ngOnInit(): void {
-    if (this.currentForm.id) {
+    this.loadSubmissions();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentForm'] && !changes['currentForm'].firstChange) {
+      this.loadSubmissions();
+    }
+  }
+
+  private loadSubmissions(): void {
+    if (this.currentForm?.id) {
       const savedSubmissions = this.formService.getSubmissions(this.currentForm.id);
       this.submissions.set(savedSubmissions);
     }

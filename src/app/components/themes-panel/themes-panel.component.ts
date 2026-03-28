@@ -53,6 +53,7 @@ export class ThemesPanelComponent {
         backgroundColor: this.currentForm.theme.backgroundColor
       }
     });
+    this.themeSaved.emit();
   }
 
 }

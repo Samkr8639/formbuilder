@@ -42,7 +42,7 @@ export class FormService {
     if (submissions.length === 0) return;
 
     const headers = ['Timestamp', ...form.fields.map(field => field.label)];
-    let csvContent = headers.join(',') + '\n';
+    let csvContent = headers.map(header => `"${String(header).replace(/"/g, '""')}"`).join(',') + '\n';
 
     submissions.forEach(submission => {
       const row = [
@@ -55,7 +55,7 @@ export class FormService {
           return value || '';
         })
       ];
-      csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+      csvContent += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
     });
 
     this.downloadFile(csvContent, `${form.title}_submissions.csv`, 'text/csv');

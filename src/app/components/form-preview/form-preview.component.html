@@ -98,12 +98,11 @@
             (onChange)="handleInputChange(field.id, $event)" />
           }
           @case ('date') {
-          <div class="relative">
+          <div>
             <input type="date" [value]="formData()[field.id] || ''"
               (change)="handleInputChange(field.id, $any($event.target).value)" 
-              [class]="'w-full form-control pr-10 ' + (hasFieldError(field.id) ? 'border-red-500' : '')"
+              [class]="'w-full form-control ' + (hasFieldError(field.id) ? 'border-red-500' : '')"
               [required]="field.required" />
-            <i class="fas fa-calendar absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
           </div>
           }
           @case ('file') {

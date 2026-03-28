@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -24,7 +24,7 @@ const PATTERN_VALIDATION_FIELDS = ['text', 'textarea', 'email'];
   templateUrl: './field-config.component.html',
   styleUrls: ['./field-config.component.css']
 })
-export class FieldConfigComponent {
+export class FieldConfigComponent implements OnInit, OnChanges {
   @Input() field: any;
   @Output() fieldUpdate = new EventEmitter<any>();
   @Output() close = new EventEmitter<void>();
@@ -32,7 +32,18 @@ export class FieldConfigComponent {
   config: any;
 
   ngOnInit(): void {
-    this.config = { ...this.field };
+    this.initField();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['field']) {
+      this.initField();
+    }
+  }
+
+  private initField(): void {
+    // Deep clone to prevent shallow mutation of main form arrays/validation objects.
+    this.config = JSON.parse(JSON.stringify(this.field));
     this.ensureValidationStructure();
   }
 
