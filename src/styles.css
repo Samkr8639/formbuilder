@@ -677,7 +677,7 @@ select {
   transition: all 0.3s ease !important;
   background-color: #ffffff !important;
   font-family: inherit !important;
- 
+
 }
 
 input[type="text"]:hover,
@@ -695,7 +695,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2)!important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
   background-color: #ffffff !important;
 }
 
