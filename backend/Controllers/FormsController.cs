@@ -156,15 +156,31 @@ public class FormsController : ControllerBase
     public async Task<IActionResult> DeleteForm(int id)
     {
         var userId = GetUserId();
-        var form = await _db.Forms.FirstOrDefaultAsync(f => f.FormId == id && f.UserId == userId);
+        var form = await _db.Forms
+            .Include(f => f.FormFields)
+            .FirstOrDefaultAsync(f => f.FormId == id && f.UserId == userId);
 
         if (form == null) return NotFound(new { message = "Form not found" });
 
-        form.IsActive = false;
-        form.ModifiedAt = DateTime.UtcNow;
+        // Delete all submissions for this form
+        var submissions = await _db.Submissions.Where(s => s.FormId == id).ToListAsync();
+        if (submissions.Any())
+        {
+            _db.Submissions.RemoveRange(submissions);
+        }
+
+        // Delete all form fields
+        if (form.FormFields.Any())
+        {
+            _db.FormFields.RemoveRange(form.FormFields);
+        }
+
+        // Delete the form itself
+        _db.Forms.Remove(form);
+
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Form deleted successfully" });
+        return Ok(new { message = "Form and all associated data deleted successfully" });
     }
 
     // GET: api/forms/5/submissions

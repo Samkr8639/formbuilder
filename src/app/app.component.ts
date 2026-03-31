@@ -125,46 +125,31 @@ export class AppComponent implements OnInit {
       next: (forms) => {
         this.forms.set(forms);
         this.isLoading.set(false);
-        this.toastr.success('Forms loaded successfully!');
+
+        // Auto-select the first form if none is selected
+        if (forms.length > 0 && !this.currentForm().formId) {
+          this.currentForm.set(forms[0]);
+        }
       },
       error: (error) => {
         console.error('Error loading forms:', error);
         this.isLoading.set(false);
         this.toastr.error('Failed to load forms from backend');
-
-        // Fallback to localStorage
-        const savedForms = this.formService.getForms();
-        if (savedForms.length > 0) {
-          this.forms.set(savedForms);
-          this.toastr.info('Loaded forms from local storage');
-        }
       }
     });
   }
 
   createNewForm(): void {
-    const currentForm = this.currentForm();
-    
-    // Check if current form exists and hasn't been saved to DB yet
-    if (currentForm.id && !currentForm.formId) {
-      Swal.fire({
-        title: 'Save Form First',
-        text: 'Please save the current form to the database before creating a new one.',
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
-
     const newForm: Form = {
       ...initialFormState,
       id: Date.now().toString(),
-      title: `Form ${this.forms().length + 1}`
+      title: 'Untitled Form'
     };
     this.currentForm.set(newForm);
     this.forms.update(forms => [...forms, newForm]);
     this.activeTab.set('builder');
-    this.toastr.info('New form created. Design and save to database when ready.');
+    this.isPreviewMode.set(false);
+    this.toastr.info('New form created. Add fields and click Save to persist to database.');
   }
 
   // updateCurrentForm(updates: Partial<Form>): void {
@@ -190,13 +175,15 @@ export class AppComponent implements OnInit {
   saveForm(): void {
     if (!this.currentForm().id) return;
 
+    // Update the local forms list
     this.forms.update(forms =>
       forms.map(form =>
         form.id === this.currentForm().id ? this.currentForm() : form
       )
     );
-    this.saveForms();
-    this.toastr.success('Form saved successfully!');
+
+    // Save to backend DB
+    this.saveFormToBackend();
   }
 
   saveFormToBackend(): void {
@@ -204,57 +191,92 @@ export class AppComponent implements OnInit {
     if (!currentForm.id) return;
 
     this.isLoading.set(true);
-    const formData = this.backendService.mapFrontendToBackendForm(currentForm);
 
+    this.backendService.saveForm(currentForm).subscribe({
+      next: (response: any) => {
+        this.isLoading.set(false);
+        const isUpdate = !!currentForm.formId;
+        
+        this.toastr.success(
+          isUpdate
+            ? 'Form updated in database successfully!'
+            : 'Form saved to database successfully!'
+        );
 
-    console.log("formData: ", formData);
-
-    // Use at the time of api Implementation
-
-    // const saveObservable = currentForm.formId
-    //   ? this.backendService.updateForm(currentForm.formId, formData)
-    //   : this.backendService.createForm(formData);
-
-    // saveObservable.subscribe({
-    //   next: (response) => {
-    //     this.isLoading.set(false);
-    //     this.toastr.success(
-    //       currentForm.formId
-    //         ? 'Form updated in database successfully!'
-    //         : 'Form saved to database successfully!'
-    //     );
-    //     this.loadFormsFromBackend();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error saving form to backend:', error);
-    //     this.isLoading.set(false);
-    //     this.toastr.error('Failed to save form to database');
-    //   }
-    // });
+        // Reload all forms from backend so the list is in sync
+        this.backendService.getForms().subscribe({
+          next: (forms) => {
+            this.forms.set(forms);
+            
+            // Select the saved/updated form
+            const savedFormId = response.formId || currentForm.formId;
+            const savedForm = forms.find(f => f.formId === savedFormId);
+            if (savedForm) {
+              this.currentForm.set(savedForm);
+            }
+          },
+          error: () => {
+            // At least update the current form's formId
+            this.currentForm.update(f => ({
+              ...f,
+              formId: response.formId,
+              shareSlug: response.shareSlug
+            }));
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error saving form to backend:', error);
+        this.isLoading.set(false);
+        this.toastr.error('Failed to save form to database');
+      }
+    });
   }
 
   deleteForm(formId: string): void {
+    const form = this.forms().find(f => f.id === formId);
+    if (!form) return;
+
     Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
+      title: 'Delete Form?',
+      text: `"${form.title}" and all its responses will be permanently deleted. This cannot be undone!`,
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!"
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire({
-          title: "Deleted!",
-          text: "Your form has been deleted.",
-          icon: "success"
-        });
-        this.forms.update(forms => forms.filter(form => form.id !== formId));
-
-        if (this.currentForm().id === formId) {
-          this.currentForm.set({ ...initialFormState });
+        // If form exists in DB, delete from backend
+        if (form.formId) {
+          this.backendService.deleteForm(form.formId).subscribe({
+            next: () => {
+              this.removeFormFromLocal(formId);
+              Swal.fire({
+                title: 'Deleted!',
+                text: 'Form and all associated responses have been deleted.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+              });
+            },
+            error: (error) => {
+              console.error('Error deleting form from backend:', error);
+              this.toastr.error('Failed to delete form from database');
+            }
+          });
+        } else {
+          // Local-only form, just remove from list
+          this.removeFormFromLocal(formId);
+          Swal.fire({
+            title: 'Deleted!',
+            text: 'Form has been removed.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
         }
-        this.saveForms();
       }
     });
   }

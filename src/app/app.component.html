@@ -1,6 +1,6 @@
 <!-- Router outlet for login/register/public-form pages -->
 @if (!authService.isLoggedIn() || isPublicRoute()) {
-  <router-outlet />
+<router-outlet />
 }
 
 <!-- Dashboard - Only shown when logged in and NOT on a public form page -->
@@ -13,13 +13,12 @@
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800">FormCraft</h1>
-        <div class="flex items-center space-x-2">
-          <span class="px-3 py-1 text-xs rounded-full bg-primary text-white">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 text-xs font-semibold rounded-full bg-primary text-white">
             {{ authService.currentUser()?.role === 'admin' ? 'Admin' : 'User' }}
           </span>
           <button (click)="authService.logout()"
-            class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-            title="Logout">
+            class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50" title="Logout">
             <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
@@ -35,7 +34,8 @@
       }
 
       <div class="relative">
-        <input type="text" placeholder="Search forms..." class="w-full form-control" style="padding-right: 2.2rem !important;" [value]="searchTerm()"
+        <input type="text" placeholder="Search forms..." class="w-full form-control"
+          style="padding-right: 2.2rem !important;" [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)" />
         <i class="fas fa-search absolute left-60 top-3 text-gray-400"></i>
       </div>
@@ -56,7 +56,8 @@
       <div class="space-y-3">
         @for (form of filteredForms(); track form.id) {
         <div
-          [class]="'form-list-item p-3 bg-white rounded-lg border ' + (currentForm().id === form.id ? 'border-primary shadow-md' : 'border-gray-200')" [style]="'height:auto'">
+          [class]="'form-list-item p-3 bg-white rounded-lg border ' + (currentForm().id === form.id ? 'border-primary shadow-md' : 'border-gray-200')"
+          [style]="'height:auto'">
           <div class="flex justify-between items-start">
             <div class="flex-1 cursor-pointer" (click)="selectForm(form.id!)">
               <h5 class="font-medium text-gray-800">{{ form.title }}</h5>
@@ -95,14 +96,19 @@
     </div>
 
     <!-- User Info Footer -->
-    <div class="p-3 border-t border-gray-200 bg-gray-50">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
-          {{ authService.currentUser()?.fullName?.charAt(0)?.toUpperCase() }}
+    <div style="padding: 14px 16px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div
+          style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+          <i class="fas fa-user"></i>
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-700 truncate">{{ authService.currentUser()?.fullName }}</p>
-          <p class="text-xs text-gray-400 truncate">{{ authService.currentUser()?.email }}</p>
+        <div style="flex: 1; min-width: 0;">
+          <p
+            style="margin: 0; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            {{ authService.currentUser()?.fullName }}</p>
+          <p
+            style="margin: 2px 0 0; font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            {{ authService.currentUser()?.email }}</p>
         </div>
       </div>
     </div>
@@ -128,27 +134,17 @@
             <span>{{ isPreviewMode() ? 'Edit' : 'Preview' }}</span>
           </button>
 
-          @if(!isPreviewMode()){
           <button (click)="saveForm()"
-            class="px-3 py-1 bg-green-500 text-white rounded-lg flex items-center space-x-1 hover:bg-green-600 transition-colors">
+            class="px-3 py-1 bg-green-500 text-white rounded-lg flex items-center space-x-1 hover:bg-green-600 transition-colors"
+            [class.opacity-50]="isLoading()" [attr.disabled]="isLoading() ? true : null">
             <i class="fas fa-save"></i>
-            <span>Save</span>
+            <span>{{ currentForm().formId ? 'Update' : 'Save' }}</span>
           </button>
-          }
-
-          @if(isPreviewMode()){
-          <button (click)="saveFormToBackend()"
-            [class]="'px-3 py-1 rounded-lg flex items-center space-x-1 ' + (currentForm().formId ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white')"
-            [class.opacity-50]="!currentForm().id" [class.cursor-not-allowed]="!currentForm().id"
-            [attr.disabled]="!currentForm().id ? true : null">
-            <i class="fas fa-database"></i>
-            <span>{{ currentForm().formId ? 'Update DB' : 'Save to DB' }}</span>
-          </button>
-          }
 
           <button (click)="openShareDialog()"
-            class="px-3 py-1 bg-indigo-500 text-white rounded-lg flex items-center space-x-1 hover:bg-indigo-600 transition-colors"
-            [class.opacity-50]="filteredForms().length === 0" [attr.disabled]="filteredForms().length === 0 ? true : null">
+            class="px-3 py-1 bg-indigo-500 text-white rounded-lg flex items-center space-x-1 hover:bg-indigo-600 transition-colors share-button"
+            [class.opacity-50]="filteredForms().length === 0"
+            [attr.disabled]="filteredForms().length === 0 ? true : null">
             <i class="fas fa-qrcode"></i>
             <span>Share</span>
           </button>
@@ -179,11 +175,12 @@
     <div [class]="'flex-1 ' + (activeTab() === 'builder' ? 'overflow-hidden' : 'overflow-auto p-6')">
       @if (activeTab() === 'builder') {
       <app-form-builder class="block h-full" [currentForm]="currentForm()" (formUpdate)="updateCurrentForm($event)"
-        (saveToDb)="onSaveToDb($event)" [isPreviewMode]="isPreviewMode()" [userRole]="userRole()" [hasForms]="filteredForms().length > 0"/>
+        (saveToDb)="onSaveToDb($event)" [isPreviewMode]="isPreviewMode()" [userRole]="userRole()"
+        [hasForms]="filteredForms().length > 0" />
       }
 
       @if (activeTab() === 'responses') {
-      <app-responses-panel [currentForm]="currentForm()" [hasForms]="filteredForms().length > 0"/>
+      <app-responses-panel [currentForm]="currentForm()" [hasForms]="filteredForms().length > 0" />
       }
 
       @if (activeTab() === 'themes' && userRole() === 'admin') {
@@ -194,11 +191,7 @@
   </div>
 </div>
 
-<app-share-dialog
-  [isOpen]="isShareDialogOpen()"
-  [formTitle]="shareFormTitle()"
-  [shareSlug]="shareFormSlug()"
-  (close)="isShareDialogOpen.set(false)"
-/>
+<app-share-dialog [isOpen]="isShareDialogOpen()" [formTitle]="shareFormTitle()" [shareSlug]="shareFormSlug()"
+  (close)="isShareDialogOpen.set(false)" />
 
 }
