@@ -8,6 +8,7 @@ import { ThemesPanelComponent, ThemeUpdate } from './components/themes-panel/the
 import { FormService } from './Service/form.service';
 import { BackendService } from './Service/backend.service';
 import { AuthService } from './Service/auth.service';
+import { ShareDialogComponent } from './components/share-dialog/share-dialog.component';
 import { Form, FieldType, FormTheme } from './Models/form.model';
 import { ToastrService } from 'ngx-toastr';
 import Swal from 'sweetalert2';
@@ -33,6 +34,7 @@ const initialFormState: Form = {
     FormBuilderComponent,
     ResponsesPanelComponent,
     ThemesPanelComponent,
+    ShareDialogComponent,
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
@@ -46,6 +48,9 @@ export class AppComponent implements OnInit {
   searchTerm = signal('');
   userRole = signal<'admin' | 'user'>('admin');
   isLoading = signal(false);
+  isShareDialogOpen = signal(false);
+  shareFormTitle = signal('');
+  shareFormSlug = signal('');
 
 
   filteredForms = computed(() => {
@@ -57,6 +62,10 @@ export class AppComponent implements OnInit {
 
   authService = inject(AuthService);
   private router = inject(Router);
+
+  isPublicRoute(): boolean {
+    return this.router.url.startsWith('/form/');
+  }
 
   constructor(private formService: FormService, private backendService: BackendService, private toastr: ToastrService) { }
 
@@ -78,6 +87,36 @@ export class AppComponent implements OnInit {
     } catch {
       return '';
     }
+  }
+
+  openShareDialog(): void {
+    const form = this.currentForm();
+    if (!form.formId) {
+      // Must save to backend first to get a share slug
+      this.toastr.info('Saving form to backend first...');
+      this.backendService.saveForm(form).subscribe({
+        next: (res: any) => {
+          // Update the local form with backend data
+          form.formId = res.formId;
+          form.shareSlug = res.shareSlug;
+          this.currentForm.set({ ...form });
+          
+          // Update in forms list
+          this.forms.update(forms => forms.map(f => f.id === form.id ? { ...form } : f));
+          
+          this.shareFormTitle.set(form.title);
+          this.shareFormSlug.set(res.shareSlug);
+          this.isShareDialogOpen.set(true);
+          this.toastr.success('Form saved! Share link ready.');
+        },
+        error: () => this.toastr.error('Failed to save form. Please try again.')
+      });
+      return;
+    }
+
+    this.shareFormTitle.set(form.title);
+    this.shareFormSlug.set(form.shareSlug || '');
+    this.isShareDialogOpen.set(true);
   }
 
   loadFormsFromBackend(): void {

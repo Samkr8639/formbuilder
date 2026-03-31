@@ -1,0 +1,52 @@
+@if (isOpen) {
+  <div class="share-overlay" (click)="onOverlayClick($event)">
+    <div class="share-dialog">
+      
+      <div class="dialog-header">
+        <h3>Share Form</h3>
+        <button class="close-btn" (click)="close.emit()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="form-name">{{ formTitle }}</p>
+
+        <!-- QR Code -->
+        <div class="qr-section">
+          <div class="qr-wrapper">
+            <canvas #qrCanvas></canvas>
+          </div>
+          <p class="qr-hint">Scan to open form</p>
+        </div>
+
+        <!-- Share Link -->
+        <div class="link-section">
+          <label>Share Link</label>
+          <div class="link-input-wrapper">
+            <input type="text" [value]="shareUrl()" readonly />
+            <button class="copy-btn" (click)="copyLink()" [class.copied]="copied()">
+              <i [class]="copied() ? 'fas fa-check' : 'fas fa-copy'"></i>
+              {{ copied() ? 'Copied!' : 'Copy' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-buttons">
+          <button class="action-btn download" (click)="downloadQR()">
+            <i class="fas fa-download"></i>
+            Download QR Code
+          </button>
+          <button class="action-btn open" (click)="close.emit()">
+            <a [href]="shareUrl()" target="_blank" class="action-link">
+              <i class="fas fa-external-link-alt"></i>
+              Open Form
+            </a>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}

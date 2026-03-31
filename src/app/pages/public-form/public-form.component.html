@@ -1,0 +1,197 @@
+<div class="public-form-wrapper">
+
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="loading-spinner">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </div>
+      <p>Loading form...</p>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (!isLoading() && errorMessage() && !form()) {
+    <div class="error-container">
+      <div class="error-card">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h2>Form Not Found</h2>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- Success state -->
+  @if (submitted()) {
+    <div class="success-container">
+      <div class="success-card">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>Thank You!</h2>
+        <p>Your response has been submitted successfully.</p>
+        <button class="submit-another-btn" (click)="resetForm()">
+          <i class="fas fa-redo"></i> Submit Another Response
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Form -->
+  @if (!isLoading() && form() && !submitted()) {
+    <div class="form-container" 
+         [style.--primary-color]="form()!.theme?.primaryColor || '#4f46e5'"
+         [style.--bg-color]="form()!.theme?.backgroundColor || '#ffffff'">
+      
+      <div class="form-header" [style.background]="'linear-gradient(135deg, ' + (form()!.theme?.primaryColor || '#4f46e5') + ', ' + (form()!.theme?.primaryColor || '#4f46e5') + 'dd)'">
+        <div class="form-brand">
+          <i class="fas fa-cube"></i>
+          <span>FormCraft</span>
+        </div>
+        <h1>{{ form()!.title }}</h1>
+        @if (form()!.description) {
+          <p>{{ form()!.description }}</p>
+        }
+      </div>
+
+      <form class="form-body" (submit)="onSubmit($event)">
+
+        @if (errorMessage()) {
+          <div class="form-error">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        @for (field of form()!.formFields; track field.fieldId) {
+          <div class="field-group">
+            <label [for]="'field-' + field.fieldId">
+              {{ field.label }}
+              @if (field.isRequired) {
+                <span class="required">*</span>
+              }
+            </label>
+
+            <!-- Text Input -->
+            @if (getFieldType(field) === 'text') {
+              <input
+                [id]="'field-' + field.fieldId"
+                type="text"
+                [placeholder]="field.placeholder || ''"
+                [required]="field.isRequired"
+                [value]="formData()[field.fieldId.toString()] || ''"
+                (input)="handleInputChange(field.fieldId, $any($event.target).value)"
+              />
+            }
+
+            <!-- Textarea -->
+            @if (getFieldType(field) === 'textarea') {
+              <textarea
+                [id]="'field-' + field.fieldId"
+                rows="4"
+                [placeholder]="field.placeholder || ''"
+                [required]="field.isRequired"
+                [value]="formData()[field.fieldId.toString()] || ''"
+                (input)="handleInputChange(field.fieldId, $any($event.target).value)"
+              ></textarea>
+            }
+
+            <!-- Radio -->
+            @if (getFieldType(field) === 'radio') {
+              <div class="options-group">
+                @for (option of getOptions(field); track option) {
+                  <label class="option-label">
+                    <input
+                      type="radio"
+                      [name]="'field-' + field.fieldId"
+                      [value]="option"
+                      [required]="field.isRequired"
+                      (change)="handleInputChange(field.fieldId, option)"
+                    />
+                    <span>{{ option }}</span>
+                  </label>
+                }
+              </div>
+            }
+
+            <!-- Checkbox -->
+            @if (getFieldType(field) === 'checkbox') {
+              <div class="options-group">
+                @for (option of getOptions(field); track option) {
+                  <label class="option-label">
+                    <input
+                      type="checkbox"
+                      [value]="option"
+                      (change)="handleCheckboxChange(field.fieldId, option, $event)"
+                    />
+                    <span>{{ option }}</span>
+                  </label>
+                }
+              </div>
+            }
+
+            <!-- Dropdown -->
+            @if (getFieldType(field) === 'dropdown') {
+              <select
+                [id]="'field-' + field.fieldId"
+                [required]="field.isRequired"
+                (change)="handleInputChange(field.fieldId, $any($event.target).value)"
+              >
+                <option value="" disabled selected>{{ field.placeholder || 'Select an option' }}</option>
+                @for (option of getOptions(field); track option) {
+                  <option [value]="option">{{ option }}</option>
+                }
+              </select>
+            }
+
+            <!-- Date -->
+            @if (getFieldType(field) === 'date') {
+              <input
+                [id]="'field-' + field.fieldId"
+                type="date"
+                [required]="field.isRequired"
+                (change)="handleInputChange(field.fieldId, $any($event.target).value)"
+              />
+            }
+
+            <!-- Rating -->
+            @if (getFieldType(field) === 'rating') {
+              <div class="star-rating">
+                @for (star of [1,2,3,4,5]; track star) {
+                  <button type="button" class="star-btn"
+                    [class.active]="(formData()[field.fieldId.toString()] || 0) >= star"
+                    (click)="handleInputChange(field.fieldId, star)">
+                    <i class="fas fa-star"></i>
+                  </button>
+                }
+              </div>
+            }
+
+            <!-- File -->
+            @if (getFieldType(field) === 'file') {
+              <input
+                [id]="'field-' + field.fieldId"
+                type="file"
+                [required]="field.isRequired"
+                (change)="handleFileChange(field.fieldId, $event)"
+              />
+            }
+          </div>
+        }
+
+        <button type="submit" class="submit-btn" [disabled]="isSubmitting()"
+                [style.background]="'linear-gradient(135deg, ' + (form()!.theme?.primaryColor || '#4f46e5') + ', ' + (form()!.theme?.primaryColor || '#4f46e5') + 'cc)'">
+          @if (isSubmitting()) {
+            <i class="fas fa-spinner fa-spin"></i> Submitting...
+          } @else {
+            <i class="fas fa-paper-plane"></i> Submit
+          }
+        </button>
+      </form>
+
+      <div class="form-footer">
+        <span>Powered by <strong>FormCraft</strong></span>
+      </div>
+    </div>
+  }
+</div>

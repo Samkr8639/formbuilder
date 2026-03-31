@@ -1,10 +1,10 @@
-<!-- Router outlet for login/register pages -->
-@if (!authService.isLoggedIn()) {
+<!-- Router outlet for login/register/public-form pages -->
+@if (!authService.isLoggedIn() || isPublicRoute()) {
   <router-outlet />
 }
 
-<!-- Dashboard - Only shown when logged in -->
-@if (authService.isLoggedIn()) {
+<!-- Dashboard - Only shown when logged in and NOT on a public form page -->
+@if (authService.isLoggedIn() && !isPublicRoute()) {
 
 <div class="flex h-screen bg-gray-50">
 
@@ -145,6 +145,13 @@
             <span>{{ currentForm().formId ? 'Update DB' : 'Save to DB' }}</span>
           </button>
           }
+
+          <button (click)="openShareDialog()"
+            class="px-3 py-1 bg-indigo-500 text-white rounded-lg flex items-center space-x-1 hover:bg-indigo-600 transition-colors"
+            [class.opacity-50]="filteredForms().length === 0" [attr.disabled]="filteredForms().length === 0 ? true : null">
+            <i class="fas fa-qrcode"></i>
+            <span>Share</span>
+          </button>
         </div>
         }
       </div>
@@ -186,5 +193,12 @@
     </div>
   </div>
 </div>
+
+<app-share-dialog
+  [isOpen]="isShareDialogOpen()"
+  [formTitle]="shareFormTitle()"
+  [shareSlug]="shareFormSlug()"
+  (close)="isShareDialogOpen.set(false)"
+/>
 
 }

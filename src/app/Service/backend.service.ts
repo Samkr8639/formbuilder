@@ -8,7 +8,7 @@ import { Form, BackendFormResponse, BackendFormFieldResponse, FormField } from '
 })
 export class BackendService {
   private http = inject(HttpClient);
-  private apiUrl = 'https://your-api-url.com/api'; // Replace with your API URL
+  private apiUrl = 'http://localhost:5000/api';
 
   // Field type mapping - adjust based on your backend FieldTypes table
   private fieldTypeMap: { [key: number]: string } = {
@@ -62,42 +62,66 @@ export class BackendService {
     return this.http.delete(`${this.apiUrl}/forms/${formId}`);
   }
 
-  // Map backend form to frontend form
-  private mapBackendToFrontendForm(backendForm: BackendFormResponse): Form {
+  // Save form (create or update)
+  saveForm(form: Form): Observable<any> {
+    const payload = {
+      title: form.title,
+      description: form.description,
+      theme: form.theme,
+      formFields: form.fields.map((field, index) => ({
+        fieldTypeId: this.fieldTypeReverseMap[field.type] || 1,
+        label: field.label,
+        placeholder: field.placeholder || null,
+        isRequired: field.required,
+        sortOrder: index + 1,
+        isActive: true,
+        configuration: {
+          options: field.options || [],
+          validation: field.validation,
+          defaultValue: field.defaultValue
+        }
+      }))
+    };
+
+    if (form.formId) {
+      return this.http.put(`${this.apiUrl}/forms/${form.formId}`, payload);
+    }
+    return this.http.post(`${this.apiUrl}/forms`, payload);
+  }
+
+  private mapBackendToFrontendForm(backendForm: any): Form {
     return {
       id: backendForm.formId.toString(),
       formId: backendForm.formId,
       title: backendForm.title,
       description: backendForm.description,
-      theme: backendForm.theme,
+      theme: backendForm.theme || { primaryColor: '#4f46e5', backgroundColor: '#ffffff' },
+      shareSlug: backendForm.shareSlug,
       isActive: backendForm.isActive,
-      createdDate: backendForm.createdDate,
-      createdBy: backendForm.createdBy,
-      modifiedDate: backendForm.modifiedDate,
-      modifiedBy: backendForm.modifiedBy,
-      fields: backendForm.formFields.map(field => this.mapBackendToFrontendField(field))
+      createdDate: backendForm.createdAt,
+      modifiedDate: backendForm.modifiedAt,
+      fields: (backendForm.formFields || []).map((field: any) => this.mapBackendToFrontendField(field))
     };
   }
 
-  // Map backend field to frontend field
-  private mapBackendToFrontendField(backendField: BackendFormFieldResponse): FormField {
+  private mapBackendToFrontendField(backendField: any): FormField {
     return {
       id: backendField.fieldId.toString(),
       fieldId: backendField.fieldId,
       formId: backendField.formId,
-      type: this.fieldTypeMap[backendField.fieldTypeId] || 'text',
+      type: backendField.fieldTypeName || this.fieldTypeMap[backendField.fieldTypeId] || 'text',
       label: backendField.label,
       placeholder: backendField.placeholder || '',
       required: backendField.isRequired,
       sortOrder: backendField.sortOrder,
       isActive: backendField.isActive,
-      options: backendField.configuration?.options || [],
-      validation: backendField.configuration?.validation || {
+      options: backendField.configuration?.options || backendField.configuration?.Options || [],
+      validation: backendField.configuration?.validation || backendField.configuration?.Validation || {
         minLength: null,
         maxLength: null,
         pattern: ''
       },
-      defaultValue: backendField.configuration?.defaultValue || ''
+      defaultValue: backendField.configuration?.defaultValue || backendField.configuration?.DefaultValue || ''
     };
   }
 

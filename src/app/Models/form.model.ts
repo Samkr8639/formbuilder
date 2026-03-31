@@ -32,6 +32,7 @@ export interface Form {
   theme: FormTheme;
   // Backend fields
   formId?: number;
+  shareSlug?: string;
   isActive?: boolean;
   createdDate?: string;
   createdBy?: number;
