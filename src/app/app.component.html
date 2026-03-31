@@ -1,12 +1,10 @@
-<!-- Loading overlay -->
-<!-- @if (isLoading()) {
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-lg flex items-center space-x-3 shadow-lg">
-    <i class="fas fa-spinner fa-spin text-primary text-2xl"></i>
-    <span class="font-medium text-gray-700">Loading...</span>
-  </div>
-</div>
-} -->
+<!-- Router outlet for login/register pages -->
+@if (!authService.isLoggedIn()) {
+  <router-outlet />
+}
+
+<!-- Dashboard - Only shown when logged in -->
+@if (authService.isLoggedIn()) {
 
 <div class="flex h-screen bg-gray-50">
 
@@ -15,16 +13,15 @@
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800">FormCraft</h1>
-        <div class="flex space-x-2">
-          <button (click)="userRole.set(userRole() === 'admin' ? 'user' : 'admin')"
-            [class]="userRole() === 'admin' ? 'px-3 py-1 text-xs rounded-full bg-primary text-white' : 'px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-700'">
-            {{ userRole() === 'admin' ? 'Admin' : 'User' }}
+        <div class="flex items-center space-x-2">
+          <span class="px-3 py-1 text-xs rounded-full bg-primary text-white">
+            {{ authService.currentUser()?.role === 'admin' ? 'Admin' : 'User' }}
+          </span>
+          <button (click)="authService.logout()"
+            class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+            title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
           </button>
-          <!-- <button (click)="loadFormsFromBackend()"
-            class="px-3 py-1 text-xs rounded-full bg-blue-500 text-white hover:bg-blue-600"
-            title="Refresh from backend">
-            <i class="fas fa-sync-alt"></i>
-          </button> -->
         </div>
       </div>
 
@@ -95,6 +92,19 @@
         }
       </div>
       }
+    </div>
+
+    <!-- User Info Footer -->
+    <div class="p-3 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+          {{ authService.currentUser()?.fullName?.charAt(0)?.toUpperCase() }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-700 truncate">{{ authService.currentUser()?.fullName }}</p>
+          <p class="text-xs text-gray-400 truncate">{{ authService.currentUser()?.email }}</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -176,3 +186,5 @@
     </div>
   </div>
 </div>
+
+}

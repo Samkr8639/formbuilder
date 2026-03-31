@@ -1,11 +1,13 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterOutlet, Router } from '@angular/router';
 import { FormBuilderComponent } from './components/form-builder/form-builder.component';
 import { ResponsesPanelComponent } from './components/responses-panel/responses-panel.component';
 import { ThemesPanelComponent, ThemeUpdate } from './components/themes-panel/themes-panel.component';
 import { FormService } from './Service/form.service';
 import { BackendService } from './Service/backend.service';
+import { AuthService } from './Service/auth.service';
 import { Form, FieldType, FormTheme } from './Models/form.model';
 import { ToastrService } from 'ngx-toastr';
 import Swal from 'sweetalert2';
@@ -27,6 +29,7 @@ const initialFormState: Form = {
   imports: [
     CommonModule,
     FormsModule,
+    RouterOutlet,
     FormBuilderComponent,
     ResponsesPanelComponent,
     ThemesPanelComponent,
@@ -52,9 +55,16 @@ export class AppComponent implements OnInit {
     );
   });
 
+  authService = inject(AuthService);
+  private router = inject(Router);
+
   constructor(private formService: FormService, private backendService: BackendService, private toastr: ToastrService) { }
 
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     this.loadFormsFromBackend();
   }
 
