@@ -1,4 +1,10 @@
 node_modules
+.angular/
+dist/
 backend/bin/
 backend/obj/
 backend/Migrations/
+backend/Properties/
+backend/appsettings.Development.json
+backend/FormCraftAPI.http
+tailwind.config.js.bak

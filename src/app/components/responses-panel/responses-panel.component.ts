@@ -1,6 +1,7 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormService } from '../../Service/form.service';
+import { BackendService } from '../../Service/backend.service';
 import { Form, FormSubmission } from '../../Models/form.model';
 import Swal from 'sweetalert2';
 
@@ -13,12 +14,86 @@ import Swal from 'sweetalert2';
 })
 export class ResponsesPanelComponent implements OnInit, OnChanges {
   @Input() currentForm: Form | any;
-  @Input() hasForms: boolean = true; // New input to check if there are forms available
+  @Input() hasForms: boolean = true;
 
   submissions = signal<FormSubmission[]>([]);
   selectedSubmission = signal<FormSubmission | null>(null);
+  activeView = signal<'responses' | 'analytics'>('responses');
 
-  constructor(private formService: FormService) { }
+  // Analytics computed values
+  totalResponses = computed(() => this.submissions().length);
+
+  responsesOverTime = computed(() => {
+    const subs = this.submissions();
+    if (subs.length === 0) return [];
+    
+    const grouped: { [key: string]: number } = {};
+    subs.forEach(sub => {
+      const date = new Date(sub.timestamp).toLocaleDateString();
+      grouped[date] = (grouped[date] || 0) + 1;
+    });
+
+    return Object.entries(grouped)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  });
+
+  fieldStats = computed(() => {
+    const subs = this.submissions();
+    const fields = this.currentForm?.fields || [];
+    if (subs.length === 0 || fields.length === 0) return [];
+
+    return fields.map((field: any) => {
+      const values = subs
+        .map(sub => sub.data[field.id] ?? sub.data[field.label] ?? sub.data[field.fieldId])
+        .filter(v => v !== undefined && v !== null && v !== '');
+
+      const fillRate = Math.round((values.length / subs.length) * 100);
+
+      // For radio/checkbox/dropdown — compute option distribution
+      let distribution: { option: string; count: number; percentage: number }[] = [];
+      if (['radio', 'dropdown', 'checkbox'].includes(field.type)) {
+        const optionCounts: { [key: string]: number } = {};
+        values.forEach(val => {
+          if (Array.isArray(val)) {
+            val.forEach(v => optionCounts[v] = (optionCounts[v] || 0) + 1);
+          } else {
+            optionCounts[val] = (optionCounts[val] || 0) + 1;
+          }
+        });
+        const total = Object.values(optionCounts).reduce((a, b) => a + b, 0);
+        distribution = Object.entries(optionCounts).map(([option, count]) => ({
+          option,
+          count,
+          percentage: Math.round((count / total) * 100)
+        })).sort((a, b) => b.count - a.count);
+      }
+
+      // For rating — compute average
+      let avgRating = 0;
+      if (field.type === 'rating') {
+        const nums = values.filter(v => typeof v === 'number');
+        avgRating = nums.length > 0 ? nums.reduce((a: number, b: number) => a + b, 0) / nums.length : 0;
+      }
+
+      return {
+        fieldId: field.id,
+        label: field.label,
+        type: field.type,
+        fillRate,
+        responseCount: values.length,
+        distribution,
+        avgRating: Math.round(avgRating * 10) / 10
+      };
+    });
+  });
+
+  maxBarValue = computed(() => {
+    const timeline = this.responsesOverTime();
+    return timeline.length > 0 ? Math.max(...timeline.map(t => t.count)) : 1;
+  });
+
+  constructor(private formService: FormService, private backendService: BackendService) { }
 
   ngOnInit(): void {
     this.loadSubmissions();
@@ -31,7 +106,19 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
   }
 
   private loadSubmissions(): void {
-    if (this.currentForm?.id) {
+    if (this.currentForm?.formId) {
+      // Fetch from backend API
+      this.backendService.getSubmissions(this.currentForm.formId).subscribe({
+        next: (subs) => this.submissions.set(subs),
+        error: () => {
+          // Fallback to local storage
+          if (this.currentForm?.id) {
+            const saved = this.formService.getSubmissions(this.currentForm.id);
+            this.submissions.set(saved);
+          }
+        }
+      });
+    } else if (this.currentForm?.id) {
       const savedSubmissions = this.formService.getSubmissions(this.currentForm.id);
       this.submissions.set(savedSubmissions);
     }
@@ -40,26 +127,71 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
   selectSubmission(submission: FormSubmission): void {
     this.selectedSubmission.set(submission);
   }
+
   closeResponse() {
     this.selectedSubmission.set(null);
   }
 
   exportToCSV(): void {
-    this.formService.exportToCSV(this.currentForm, this.submissions());
+    const subs = this.submissions();
+    if (subs.length === 0) return;
+
+    const fields = this.currentForm?.fields || [];
+    const headers = ['#', 'Timestamp', ...fields.map((f: any) => f.label)];
+
+    const rows = subs.map((sub, i) => {
+      const row = [
+        (i + 1).toString(),
+        new Date(sub.timestamp).toLocaleString(),
+        ...fields.map((f: any) => {
+          const val = sub.data[f.id] ?? sub.data[f.label] ?? sub.data[f.fieldId];
+          if (Array.isArray(val)) return val.join('; ');
+          return val?.toString() || '';
+        })
+      ];
+      return row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    this.downloadFile(csv, `${this.currentForm.title}_responses.csv`, 'text/csv');
   }
 
   exportToJSON(): void {
-    this.formService.exportToJSON(this.currentForm, this.submissions());
+    const subs = this.submissions();
+    if (subs.length === 0) return;
+
+    const fields = this.currentForm?.fields || [];
+    const data = subs.map(sub => {
+      const entry: any = { timestamp: sub.timestamp };
+      fields.forEach((f: any) => {
+        entry[f.label] = sub.data[f.id] ?? '';
+      });
+      return entry;
+    });
+
+    this.downloadFile(JSON.stringify(data, null, 2), `${this.currentForm.title}_responses.json`, 'application/json');
   }
 
-  // Helper method to check if a value is an array
+  private downloadFile(content: string, filename: string, type: string): void {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   isArray(value: any): boolean {
     return Array.isArray(value);
   }
 
-  // Helper method to format array values for display
   formatArrayValue(value: any[]): string {
     return value.join(', ');
+  }
+
+  getFieldValue(data: any, field: any): any {
+    return data[field.id] ?? data[field.label] ?? data[field.fieldId];
   }
 
   deleteResponse(formId: string): void {
@@ -73,28 +205,23 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
       confirmButtonText: "Yes, delete it!"
     }).then((result) => {
       if (result.isConfirmed) {
-        // Find the submission to delete
         const submission = this.submissions().find(form => form.id === formId);
-        
-        // Delete from service
         this.formService.removeSubmission(this.currentForm.id, submission?.id);
-        
-        // Update the submissions signal to remove the deleted response
-        this.submissions.update(submissions => 
+        this.submissions.update(submissions =>
           submissions.filter(sub => sub.id !== formId)
         );
-        
-        // Close the response detail panel
         this.closeResponse();
-        
-        Swal.fire({
-          title: "Deleted!",
-          text: "The response has been deleted.",
-          icon: "success"
-        });
+        Swal.fire({ title: "Deleted!", text: "The response has been deleted.", icon: "success" });
       }
     });
   }
 
-
+  // Chart helper
+  getBarColor(index: number): string {
+    const colors = [
+      '#4f46e5', '#7c3aed', '#06b6d4', '#10b981',
+      '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'
+    ];
+    return colors[index % colors.length];
+  }
 }

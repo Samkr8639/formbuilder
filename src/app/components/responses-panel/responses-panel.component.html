@@ -1,84 +1,217 @@
-<div class="flex h-full">
-  <!-- Submission List -->
-  <div class="w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-medium text-gray-700">Responses ({{ submissions().length }})</h3>
-      <div class="flex space-x-2">
-        <button (click)="exportToCSV()" class="p-2 text-gray-500 hover:text-primary transition-colors export-button"
-          title="Export to CSV">
-          <i class="fas fa-file-csv"></i>
+<div class="responses-wrapper">
+  <!-- Left Panel - Submission List -->
+  <div class="submissions-sidebar">
+    <!-- Header -->
+    <div class="sidebar-header">
+      <div class="header-top">
+        <h3>Responses <span class="count-badge">{{ totalResponses() }}</span></h3>
+        <div class="export-buttons">
+          <button (click)="exportToCSV()" class="export-btn" title="Export CSV" [disabled]="totalResponses() === 0">
+            <i class="fas fa-file-csv"></i>
+          </button>
+          <button (click)="exportToJSON()" class="export-btn" title="Export JSON" [disabled]="totalResponses() === 0">
+            <i class="fas fa-file-code"></i>
+          </button>
+        </div>
+      </div>
+      <div class="view-toggle">
+        <button [class.active]="activeView() === 'responses'" (click)="activeView.set('responses')">
+          <i class="fas fa-list"></i> Responses
         </button>
-        <button (click)="exportToJSON()" class="p-2 text-gray-500 hover:text-primary transition-colors export-button"
-          title="Export to JSON">
-          <i class="fas fa-file-code"></i>
+        <button [class.active]="activeView() === 'analytics'" (click)="activeView.set('analytics')">
+          <i class="fas fa-chart-bar"></i> Analytics
         </button>
       </div>
     </div>
 
-    <div class="space-y-2">
-      @for (submission of submissions(); track submission.id) {
-      <div
-        [class]="'p-2 bg-white rounded-lg border cursor-pointer ' + (selectedSubmission()?.id === submission.id ? 'border-primary' : 'border-gray-200')"
-        (click)="selectSubmission(submission)">
-        <div class="d-flex justify-content-between">
-          <div>
-            <span class="text-sm font-medium text-gray-800">
-              Response #{{ submissions().indexOf(submission) + 1 }}
-            </span>
-            <p class="text-xs text-gray-500">
-              {{ submission.timestamp | date:'medium' }}
-            </p>
+    <!-- Submission List -->
+    @if (activeView() === 'responses') {
+      <div class="submissions-list">
+        @if (submissions().length === 0) {
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No responses yet</p>
+            <span>Share your form to start collecting responses</span>
           </div>
-  
-          <div>
-            <button class="p-1 text-gray-500 hover:text-red-500 transition-colors copy-delete" title="Delete form" (click)="deleteResponse(submission.id)">
-              <i class="fas fa-trash"></i>
-            </button>
+        } @else {
+          @for (submission of submissions(); track submission.id) {
+            <div class="submission-item" [class.selected]="selectedSubmission()?.id === submission.id"
+                 (click)="selectSubmission(submission)">
+              <div class="submission-info">
+                <span class="submission-number">Response #{{ submissions().indexOf(submission) + 1 }}</span>
+                <span class="submission-time">{{ submission.timestamp | date:'medium' }}</span>
+              </div>
+              <button class="delete-btn" title="Delete" (click)="deleteResponse(submission.id); $event.stopPropagation()">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- Analytics Summary (Left Panel) -->
+    @if (activeView() === 'analytics') {
+      <div class="analytics-sidebar-content">
+        <div class="stat-card highlight">
+          <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">{{ totalResponses() }}</span>
+            <span class="stat-label">Total Responses</span>
           </div>
         </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-list-ol"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">{{ currentForm?.fields?.length || 0 }}</span>
+            <span class="stat-label">Form Fields</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-clock"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">{{ submissions().length > 0 ? (submissions()[submissions().length - 1].timestamp | date:'shortDate') : '—' }}</span>
+            <span class="stat-label">Latest Response</span>
+          </div>
+        </div>
+
+        <!-- Response Timeline Mini -->
+        @if (responsesOverTime().length > 0) {
+          <div class="mini-chart-section">
+            <h4>Response Timeline</h4>
+            <div class="mini-bar-chart">
+              @for (item of responsesOverTime(); track item.date) {
+                <div class="mini-bar-item">
+                  <div class="mini-bar" [style.height.%]="(item.count / maxBarValue()) * 100"
+                       [style.background]="'#4f46e5'"></div>
+                  <span class="mini-bar-label">{{ item.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
-      }
-    </div>
+    }
   </div>
 
-  <!-- Submission Details -->
-  <div class="flex-1 p-6 overflow-y-auto">
-    @if (selectedSubmission()) {
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-medium text-gray-800">
-          Response #{{ submissions().indexOf(selectedSubmission()!) + 1 }}
-        </h3>
-        <div class="text-sm text-gray-500">
-          {{ selectedSubmission()!.timestamp | date:'medium' }} &nbsp;&nbsp;
-          <button class="p-1 text-gray-500 hover:text-red-500 transition-colors copy-delete" title="close response" (click)="closeResponse()">
-              <i class="fas fa-xmark"></i>
-            </button>
-        </div>
-      </div>
+  <!-- Right Panel - Details / Analytics -->
+  <div class="detail-panel">
 
-      <div class="space-y-4">
-        @for (field of currentForm.fields; track field.id) {
-        <div class="border-b border-gray-100 pb-4">
-          <div class="font-medium text-gray-700 mb-1">{{ field.label }}</div>
-          <div class="text-gray-900">
-            @let value = selectedSubmission()!.data[field.id];
-            @if (isArray(value)) {
-            {{ formatArrayValue(value) }}
-            } @else if (value) {
-            {{ value }}
-            } @else {
-            <span class="text-gray-400">No response</span>
+    @if (activeView() === 'responses') {
+      @if (selectedSubmission()) {
+        <div class="response-detail">
+          <div class="detail-header">
+            <h3>Response #{{ submissions().indexOf(selectedSubmission()!) + 1 }}</h3>
+            <div class="detail-actions">
+              <span class="detail-time">{{ selectedSubmission()!.timestamp | date:'medium' }}</span>
+              <button class="close-btn" (click)="closeResponse()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <div class="detail-fields">
+            @for (field of currentForm.fields; track field.id) {
+              <div class="detail-field">
+                <div class="field-label">{{ field.label }}</div>
+                <div class="field-value">
+                  @let value = getFieldValue(selectedSubmission()!.data, field);
+                  @if (isArray(value)) {
+                    <div class="tag-list">
+                      @for (tag of value; track tag) {
+                        <span class="tag">{{ tag }}</span>
+                      }
+                    </div>
+                  } @else if (field.type === 'rating' && value) {
+                    <div class="rating-display">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <i [class]="'fas fa-star ' + (star <= value ? 'filled' : 'empty')"></i>
+                      }
+                      <span>({{ value }}/5)</span>
+                    </div>
+                  } @else if (value) {
+                    {{ value }}
+                  } @else {
+                    <span class="no-response">No response</span>
+                  }
+                </div>
+              </div>
             }
           </div>
         </div>
+      } @else {
+        <div class="empty-detail">
+          <i class="fas fa-mouse-pointer"></i>
+          <p>Select a response to view details</p>
+        </div>
+      }
+    }
+
+    @if (activeView() === 'analytics') {
+      <div class="analytics-panel">
+        @if (totalResponses() === 0) {
+          <div class="empty-detail">
+            <i class="fas fa-chart-pie"></i>
+            <p>No data to analyze</p>
+            <span>Collect some responses to see analytics</span>
+          </div>
+        } @else {
+          <!-- Field Analytics -->
+          <div class="analytics-grid">
+            @for (stat of fieldStats(); track stat.fieldId) {
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <h4>{{ stat.label }}</h4>
+                  <span class="field-type-badge">{{ stat.type }}</span>
+                </div>
+
+                <!-- Fill Rate Bar -->
+                <div class="fill-rate">
+                  <div class="fill-rate-header">
+                    <span>Fill Rate</span>
+                    <span class="fill-rate-value">{{ stat.fillRate }}%</span>
+                  </div>
+                  <div class="fill-rate-bar">
+                    <div class="fill-rate-progress" [style.width.%]="stat.fillRate"
+                         [style.background]="stat.fillRate >= 80 ? '#22c55e' : stat.fillRate >= 50 ? '#f59e0b' : '#ef4444'"></div>
+                  </div>
+                </div>
+
+                <!-- Distribution Chart (radio/checkbox/dropdown) -->
+                @if (stat.distribution.length > 0) {
+                  <div class="distribution-chart">
+                    @for (item of stat.distribution; track item.option; let i = $index) {
+                      <div class="dist-row">
+                        <div class="dist-label">{{ item.option }}</div>
+                        <div class="dist-bar-track">
+                          <div class="dist-bar" [style.width.%]="item.percentage"
+                               [style.background]="getBarColor(i)"></div>
+                        </div>
+                        <div class="dist-value">{{ item.count }} <span>({{ item.percentage }}%)</span></div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Rating Average -->
+                @if (stat.type === 'rating' && stat.avgRating > 0) {
+                  <div class="avg-rating">
+                    <div class="avg-rating-stars">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <i [class]="'fas fa-star ' + (star <= stat.avgRating ? 'filled' : 'empty')"></i>
+                      }
+                    </div>
+                    <span class="avg-rating-value">{{ stat.avgRating }} / 5 avg</span>
+                  </div>
+                }
+
+                <div class="response-count">
+                  <i class="fas fa-reply"></i> {{ stat.responseCount }} responses
+                </div>
+              </div>
+            }
+          </div>
         }
       </div>
-    </div>
-    } @else {
-    <div class="h-full flex items-center justify-center text-gray-500">
-      Select a response to view details
-    </div>
     }
   </div>
 </div>

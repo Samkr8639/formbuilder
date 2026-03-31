@@ -89,6 +89,17 @@ export class BackendService {
     return this.http.post(`${this.apiUrl}/forms`, payload);
   }
 
+  // Get submissions for a form from backend
+  getSubmissions(formId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/forms/${formId}/submissions`).pipe(
+      map(subs => subs.map(s => ({
+        id: s.submissionId.toString(),
+        timestamp: s.submittedAt,
+        data: s.responseData || {}
+      })))
+    );
+  }
+
   private mapBackendToFrontendForm(backendForm: any): Form {
     return {
       id: backendForm.formId.toString(),
