@@ -139,6 +139,22 @@
   letter-spacing: 0.03em;
 }
 
+.forgot-password-link {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.forgot-password-link a {
+  font-size: 0.8rem;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.forgot-password-link a:hover {
+  text-decoration: underline;
+}
+
 .input-wrapper {
   position: relative;
   display: flex;

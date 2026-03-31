@@ -32,6 +32,13 @@ public class User
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [MaxLength(255)]
+    [Column("reset_password_token")]
+    public string? ResetPasswordToken { get; set; }
+
+    [Column("reset_password_token_expiry")]
+    public DateTime? ResetPasswordTokenExpiry { get; set; }
+
     // Navigation
     public ICollection<Form> Forms { get; set; } = new List<Form>();
 }

@@ -44,6 +44,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddTransient<FormCraftAPI.Services.IEmailService, FormCraftAPI.Services.MockEmailService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

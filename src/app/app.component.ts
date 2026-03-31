@@ -64,17 +64,29 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
 
   isPublicRoute(): boolean {
-    return this.router.url.startsWith('/form/');
+    // In AppComponent ngOnInit, router.url might not be resolved yet on hard reload.
+    // Fallback to window.location.pathname for initial load check.
+    const url = this.router.url === '/' ? window.location.pathname : this.router.url;
+    
+    return url.startsWith('/form/') || 
+           url.startsWith('/login') || 
+           url.startsWith('/register') || 
+           url.startsWith('/forgot-password') || 
+           url.startsWith('/reset-password');
   }
 
   constructor(private formService: FormService, private backendService: BackendService, private toastr: ToastrService) { }
 
   ngOnInit(): void {
-    if (!this.authService.isLoggedIn()) {
+    if (!this.authService.isLoggedIn() && !this.isPublicRoute()) {
       this.router.navigate(['/login']);
       return;
     }
-    this.loadFormsFromBackend();
+    
+    // Only load forms if logged in
+    if (this.authService.isLoggedIn()) {
+      this.loadFormsFromBackend();
+    }
   }
 
   // Helper method to format dates

@@ -57,6 +57,26 @@ export class AuthService {
       );
   }
 
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email })
+      .pipe(
+        catchError(err => {
+          const message = err.error?.message || 'Failed to send reset link';
+          return throwError(() => new Error(message));
+        })
+      );
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/reset-password`, { token, newPassword })
+      .pipe(
+        catchError(err => {
+          const message = err.error?.message || 'Failed to reset password';
+          return throwError(() => new Error(message));
+        })
+      );
+  }
+
   logout(): void {
     localStorage.removeItem('formcraft_token');
     localStorage.removeItem('formcraft_user');

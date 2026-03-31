@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using FormCraftAPI.Data;
 using FormCraftAPI.DTOs;
 using FormCraftAPI.Models;
+using FormCraftAPI.Services;
 
 namespace FormCraftAPI.Controllers;
 
@@ -17,11 +18,13 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IEmailService _emailService;
 
-    public AuthController(AppDbContext db, IConfiguration config)
+    public AuthController(AppDbContext db, IConfiguration config, IEmailService emailService)
     {
         _db = db;
         _config = config;
+        _emailService = emailService;
     }
 
     [HttpPost("register")]
@@ -81,6 +84,54 @@ public class AuthController : ControllerBase
             return NotFound();
 
         return Ok(MapToUserDto(user));
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
+        
+        if (user == null)
+        {
+            // Always return success to prevent email enumeration attacks
+            return Ok(new { message = "If the email exists, a password reset link has been sent." });
+        }
+
+        // Generate a secure, URL-safe random token
+        var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                           .Replace("+", "-").Replace("/", "_").Replace("=", "");
+
+        user.ResetPasswordToken = token;
+        user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(1);
+
+        await _db.SaveChangesAsync();
+
+        // Send email (using our Mock service)
+        await _emailService.SendPasswordResetEmailAsync(user.Email, token);
+
+        return Ok(new { message = "If the email exists, a password reset link has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => 
+            u.ResetPasswordToken == dto.Token && 
+            u.ResetPasswordTokenExpiry > DateTime.UtcNow);
+
+        if (user == null)
+        {
+            return BadRequest(new { message = "Invalid or expired password reset token." });
+        }
+
+        // Hash new password and clear the reset token
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.ResetPasswordToken = null;
+        user.ResetPasswordTokenExpiry = null;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Password has been reset successfully." });
     }
 
     private string GenerateJwtToken(User user)
