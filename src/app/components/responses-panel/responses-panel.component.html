@@ -1,22 +1,25 @@
-<div class="responses-wrapper">
-  <!-- Left Panel - Submission List -->
-  <div class="submissions-sidebar">
+<div class="responses-wrapper" [class.has-detail]="selectedSubmission() && activeView() === 'responses'">
+  <!-- Left Panel - Submission List or Analytics -->
+  <div class="main-content-area" [class.analytics-mode]="activeView() === 'analytics'">
     <!-- Header -->
     <div class="sidebar-header">
       <div class="header-top">
-        <h3>Responses <span class="count-badge">{{ totalResponses() }}</span></h3>
+        <h3>Responses <span class="count-badge">{{ totalCount() }}</span></h3>
         <div class="export-buttons">
-          <button (click)="exportToCSV()" class="export-btn" title="Export CSV" [disabled]="totalResponses() === 0">
+          <button (click)="refresh()" class="export-btn" title="Refresh Latest">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button (click)="exportToCSV()" class="export-btn" title="Export CSV" [disabled]="totalCount() === 0">
             <i class="fas fa-file-csv"></i>
           </button>
-          <button (click)="exportToJSON()" class="export-btn" title="Export JSON" [disabled]="totalResponses() === 0">
+          <button (click)="exportToJSON()" class="export-btn" title="Export JSON" [disabled]="totalCount() === 0">
             <i class="fas fa-file-code"></i>
           </button>
         </div>
       </div>
       <div class="view-toggle">
         <button [class.active]="activeView() === 'responses'" (click)="activeView.set('responses')">
-          <i class="fas fa-list"></i> Responses
+          <i class="fas fa-table"></i> Table View
         </button>
         <button [class.active]="activeView() === 'analytics'" (click)="activeView.set('analytics')">
           <i class="fas fa-chart-bar"></i> Analytics
@@ -24,39 +27,86 @@
       </div>
     </div>
 
-    <!-- Submission List -->
+    <!-- Table View -->
     @if (activeView() === 'responses') {
-      <div class="submissions-list">
+      <div class="table-container">
         @if (submissions().length === 0) {
           <div class="empty-state">
-            <i class="fas fa-inbox"></i>
+            <i class="fas fa-table"></i>
             <p>No responses yet</p>
             <span>Share your form to start collecting responses</span>
           </div>
         } @else {
-          @for (submission of submissions(); track submission.id) {
-            <div class="submission-item" [class.selected]="selectedSubmission()?.id === submission.id"
-                 (click)="selectSubmission(submission)">
-              <div class="submission-info">
-                <span class="submission-number">Response #{{ submissions().indexOf(submission) + 1 }}</span>
-                <span class="submission-time">{{ submission.timestamp | date:'medium' }}</span>
-              </div>
-              <button class="delete-btn" title="Delete" (click)="deleteResponse(submission.id); $event.stopPropagation()">
-                <i class="fas fa-trash"></i>
+          <table class="antigravity-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                @for (field of currentForm?.fields; track field.id) {
+                  <th>{{ field.label }}</th>
+                }
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (submission of submissions(); track submission.id; let i = $index) {
+                <tr [class.selected]="selectedSubmission()?.id === submission.id" (click)="selectSubmission(submission)">
+                  <td>#{{ (currentPage() - 1) * itemsPerPage() + i + 1 }}</td>
+                  <td>{{ submission.timestamp | date:'short' }}</td>
+                  @for (field of currentForm?.fields; track field.id) {
+                    <td class="truncate" [title]="getFieldValue(submission.data, field)">
+                      @let value = getFieldValue(submission.data, field);
+                      @if (isArray(value)) {
+                        {{ formatArrayValue(value) }}
+                      } @else if (field.type === 'rating') {
+                        {{ value ? value + '/5' : '-' }}
+                      } @else if (isImage(value)) {
+                        <img [src]="value" class="table-img-preview" alt="Image" loading="lazy">
+                      } @else if (isFileUrl(value)) {
+                        <a [href]="value" target="_blank" class="file-link"><i class="fas fa-file-alt"></i> View File</a>
+                      } @else if (field.type === 'file' && value) {
+                        <span class="no-media"><i class="fas fa-image"></i> No preview</span>
+                      } @else {
+                        {{ value || '-' }}
+                      }
+                    </td>
+                  }
+                  <td class="actions-cell">
+                    <button class="delete-btn" title="Delete" (click)="deleteResponse(submission.id); $event.stopPropagation()">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <!-- Pagination Footer -->
+          <div class="pagination-footer">
+            <div class="pagination-info">
+              Showing {{ (currentPage() - 1) * itemsPerPage() + 1 }} to {{ Math.min(currentPage() * itemsPerPage(), totalCount()) }} of {{ totalCount() }} entries
+            </div>
+            <div class="pagination-controls">
+              <button class="page-btn" (click)="prevPage()" [disabled]="currentPage() === 1">
+                <i class="fas fa-chevron-left"></i> Prev
+              </button>
+              <span class="page-indicator">Page {{ currentPage() }} of {{ totalPages() }}</span>
+              <button class="page-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages() || totalPages() === 0">
+                Next <i class="fas fa-chevron-right"></i>
               </button>
             </div>
-          }
+          </div>
         }
       </div>
     }
 
-    <!-- Analytics Summary (Left Panel) -->
+    <!-- Analytics Summary -->
     @if (activeView() === 'analytics') {
       <div class="analytics-sidebar-content">
         <div class="stat-card highlight">
           <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
           <div class="stat-info">
-            <span class="stat-value">{{ totalResponses() }}</span>
+            <span class="stat-value">{{ totalCount() }}</span>
             <span class="stat-label">Total Responses</span>
           </div>
         </div>
@@ -70,12 +120,11 @@
         <div class="stat-card">
           <div class="stat-icon green"><i class="fas fa-clock"></i></div>
           <div class="stat-info">
-            <span class="stat-value">{{ submissions().length > 0 ? (submissions()[submissions().length - 1].timestamp | date:'shortDate') : '—' }}</span>
+            <span class="stat-value">{{ submissions().length > 0 ? (submissions()[0].timestamp | date:'shortDate') : '—' }}</span>
             <span class="stat-label">Latest Response</span>
           </div>
         </div>
 
-        <!-- Response Timeline Mini -->
         @if (responsesOverTime().length > 0) {
           <div class="mini-chart-section">
             <h4>Response Timeline</h4>
@@ -94,68 +143,66 @@
     }
   </div>
 
-  <!-- Right Panel - Details / Analytics -->
-  <div class="detail-panel">
+  <!-- Right Panel - Details / Analytics (Slide over style when Table view) -->
+  <div class="detail-panel" *ngIf="activeView() === 'analytics' || (activeView() === 'responses' && selectedSubmission())">
 
-    @if (activeView() === 'responses') {
-      @if (selectedSubmission()) {
-        <div class="response-detail">
-          <div class="detail-header">
-            <h3>Response #{{ submissions().indexOf(selectedSubmission()!) + 1 }}</h3>
-            <div class="detail-actions">
-              <span class="detail-time">{{ selectedSubmission()!.timestamp | date:'medium' }}</span>
-              <button class="close-btn" (click)="closeResponse()">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+    @if (activeView() === 'responses' && selectedSubmission()) {
+      <div class="response-detail">
+        <div class="detail-header">
+          <h3>Response Details</h3>
+          <div class="detail-actions">
+            <span class="detail-time">{{ selectedSubmission()!.timestamp | date:'medium' }}</span>
+            <button class="close-btn" (click)="closeResponse()">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <div class="detail-fields">
-            @for (field of currentForm.fields; track field.id) {
-              <div class="detail-field">
-                <div class="field-label">{{ field.label }}</div>
-                <div class="field-value">
-                  @let value = getFieldValue(selectedSubmission()!.data, field);
-                  @if (isArray(value)) {
-                    <div class="tag-list">
-                      @for (tag of value; track tag) {
-                        <span class="tag">{{ tag }}</span>
-                      }
-                    </div>
-                  } @else if (field.type === 'rating' && value) {
-                    <div class="rating-display">
-                      @for (star of [1,2,3,4,5]; track star) {
-                        <i [class]="'fas fa-star ' + (star <= value ? 'filled' : 'empty')"></i>
-                      }
-                      <span>({{ value }}/5)</span>
-                    </div>
-                  } @else if (value) {
-                    {{ value }}
-                  } @else {
-                    <span class="no-response">No response</span>
-                  }
-                </div>
+        </div>
+        <div class="detail-fields">
+          @for (field of currentForm.fields; track field.id) {
+            <div class="detail-field">
+              <div class="field-label">{{ field.label }}</div>
+              <div class="field-value">
+                @let value = getFieldValue(selectedSubmission()!.data, field);
+                @if (isArray(value)) {
+                  <div class="tag-list">
+                    @for (tag of value; track tag) {
+                      <span class="tag">{{ tag }}</span>
+                    }
+                  </div>
+                } @else if (field.type === 'rating' && value) {
+                  <div class="rating-display">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <i [class]="'fas fa-star ' + (star <= value ? 'filled' : 'empty')"></i>
+                    }
+                    <span>({{ value }}/5)</span>
+                  </div>
+                } @else if (isImage(value)) {
+                  <img [src]="value" class="detail-img-preview" alt="Uploaded Image" loading="lazy">
+                } @else if (isFileUrl(value)) {
+                  <a [href]="value" target="_blank" class="file-download-btn"><i class="fas fa-external-link-alt"></i> Open File</a>
+                } @else if (field.type === 'file' && value) {
+                  <span class="no-media-detail"><i class="fas fa-image"></i> No preview available</span>
+                } @else if (value) {
+                  {{ value }}
+                } @else {
+                  <span class="no-response">No response</span>
+                }
               </div>
-            }
-          </div>
+            </div>
+          }
         </div>
-      } @else {
-        <div class="empty-detail">
-          <i class="fas fa-mouse-pointer"></i>
-          <p>Select a response to view details</p>
-        </div>
-      }
+      </div>
     }
 
     @if (activeView() === 'analytics') {
       <div class="analytics-panel">
-        @if (totalResponses() === 0) {
+        @if (totalCount() === 0) {
           <div class="empty-detail">
             <i class="fas fa-chart-pie"></i>
             <p>No data to analyze</p>
             <span>Collect some responses to see analytics</span>
           </div>
         } @else {
-          <!-- Field Analytics -->
           <div class="analytics-grid">
             @for (stat of fieldStats(); track stat.fieldId) {
               <div class="analytics-card">
@@ -164,7 +211,6 @@
                   <span class="field-type-badge">{{ stat.type }}</span>
                 </div>
 
-                <!-- Fill Rate Bar -->
                 <div class="fill-rate">
                   <div class="fill-rate-header">
                     <span>Fill Rate</span>
@@ -176,7 +222,6 @@
                   </div>
                 </div>
 
-                <!-- Distribution Chart (radio/checkbox/dropdown) -->
                 @if (stat.distribution.length > 0) {
                   <div class="distribution-chart">
                     @for (item of stat.distribution; track item.option; let i = $index) {
@@ -192,7 +237,6 @@
                   </div>
                 }
 
-                <!-- Rating Average -->
                 @if (stat.type === 'rating' && stat.avgRating > 0) {
                   <div class="avg-rating">
                     <div class="avg-rating-stars">

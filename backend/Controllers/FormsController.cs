@@ -185,19 +185,23 @@ public class FormsController : ControllerBase
 
     // GET: api/forms/5/submissions
     [HttpGet("{id}/submissions")]
-    public async Task<IActionResult> GetSubmissions(int id)
+    public async Task<IActionResult> GetSubmissions(int id, [FromQuery] int page = 1, [FromQuery] int limit = 10)
     {
         var userId = GetUserId();
         var form = await _db.Forms.FirstOrDefaultAsync(f => f.FormId == id && f.UserId == userId);
 
         if (form == null) return NotFound(new { message = "Form not found" });
 
-        var submissions = await _db.Submissions
-            .Where(s => s.FormId == id)
+        var query = _db.Submissions.Where(s => s.FormId == id);
+        var total = await query.CountAsync();
+
+        var submissions = await query
             .OrderByDescending(s => s.SubmittedAt)
+            .Skip((page - 1) * limit)
+            .Take(limit)
             .ToListAsync();
 
-        var result = submissions.Select(s => new SubmissionDto
+        var data = submissions.Select(s => new SubmissionDto
         {
             SubmissionId = s.SubmissionId,
             FormId = s.FormId,
@@ -205,6 +209,76 @@ public class FormsController : ControllerBase
             SubmittedBy = s.SubmittedBy,
             SubmittedAt = s.SubmittedAt
         });
+
+        return Ok(new PaginatedResponse<SubmissionDto>
+        {
+            Data = data,
+            Meta = new PaginationMeta { Total = total, Page = page }
+        });
+    }
+
+    // DELETE: api/forms/5/submissions/7
+    [HttpDelete("{id}/submissions/{submissionId}")]
+    public async Task<IActionResult> DeleteSubmission(int id, int submissionId)
+    {
+        var userId = GetUserId();
+        var form = await _db.Forms.FirstOrDefaultAsync(f => f.FormId == id && f.UserId == userId);
+
+        if (form == null) return NotFound(new { message = "Form not found" });
+
+        var submission = await _db.Submissions
+            .FirstOrDefaultAsync(s => s.SubmissionId == submissionId && s.FormId == id);
+
+        if (submission == null) return NotFound(new { message = "Submission not found" });
+
+        _db.Submissions.Remove(submission);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Submission deleted successfully" });
+    }
+
+    // POST: api/forms/5/submissions/upsert
+    [HttpPost("{id}/submissions/upsert")]
+    public async Task<IActionResult> UpsertSubmission(int id, [FromBody] UpsertSubmissionDto dto)
+    {
+        var userId = GetUserId();
+        var form = await _db.Forms.FirstOrDefaultAsync(f => f.FormId == id && f.UserId == userId);
+
+        if (form == null) return NotFound(new { message = "Form not found" });
+
+        Submission submission;
+
+        if (dto.SubmissionId.HasValue)
+        {
+            submission = await _db.Submissions.FirstOrDefaultAsync(s => s.SubmissionId == dto.SubmissionId.Value && s.FormId == id);
+            if (submission == null) return NotFound(new { message = "Submission not found" });
+
+            submission.ResponseData = JsonSerializer.Serialize(dto.ResponseData);
+            submission.SubmittedBy = dto.SubmittedBy ?? submission.SubmittedBy;
+            submission.SubmittedAt = DateTime.UtcNow; // Optional: update timestamp on edit
+        }
+        else
+        {
+            submission = new Submission
+            {
+                FormId = id,
+                ResponseData = JsonSerializer.Serialize(dto.ResponseData),
+                SubmittedBy = dto.SubmittedBy,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+            };
+            _db.Submissions.Add(submission);
+        }
+
+        await _db.SaveChangesAsync();
+
+        var result = new SubmissionDto
+        {
+            SubmissionId = submission.SubmissionId,
+            FormId = submission.FormId,
+            ResponseData = JsonSerializer.Deserialize<object>(submission.ResponseData)!,
+            SubmittedBy = submission.SubmittedBy,
+            SubmittedAt = submission.SubmittedAt
+        };
 
         return Ok(result);
     }

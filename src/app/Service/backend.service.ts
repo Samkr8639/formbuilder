@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { Form, BackendFormResponse, BackendFormFieldResponse, FormField } from '../Models/form.model';
+import { environment } from '../../environments/environment.development';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BackendService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
 
   // Field type mapping - adjust based on your backend FieldTypes table
   private fieldTypeMap: { [key: number]: string } = {
@@ -89,15 +90,33 @@ export class BackendService {
     return this.http.post(`${this.apiUrl}/forms`, payload);
   }
 
-  // Get submissions for a form from backend
-  getSubmissions(formId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/forms/${formId}/submissions`).pipe(
-      map(subs => subs.map(s => ({
-        id: s.submissionId.toString(),
-        timestamp: s.submittedAt,
-        data: s.responseData || {}
-      })))
+  // Get submissions for a form from backend with pagination
+  getSubmissions(formId: number, page: number = 1, limit: number = 10): Observable<{ data: any[], meta: any }> {
+    return this.http.get<any>(`${this.apiUrl}/forms/${formId}/submissions?page=${page}&limit=${limit}`).pipe(
+      map(response => ({
+        data: response.data.map((s: any) => ({
+          id: s.submissionId.toString(),
+          timestamp: s.submittedAt,
+          data: s.responseData || {}
+        })),
+        meta: response.meta
+      }))
     );
+  }
+
+  // Upsert submission
+  upsertSubmission(formId: number, submissionId: number | null, responseData: any, submittedBy: string | null = null): Observable<any> {
+    const payload = {
+      submissionId: submissionId,
+      responseData: responseData,
+      submittedBy: submittedBy
+    };
+    return this.http.post(`${this.apiUrl}/forms/${formId}/submissions/upsert`, payload);
+  }
+
+  // Delete a single submission
+  deleteSubmission(formId: number, submissionId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/forms/${formId}/submissions/${submissionId}`);
   }
 
   private mapBackendToFrontendForm(backendForm: any): Form {

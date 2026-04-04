@@ -69,7 +69,7 @@ textarea.border-red-500:focus {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #1f2937;
+  color: #CBD5E1 !important;
 }
 
 .field-item.field-error label {
@@ -230,5 +230,3 @@ input[type="date"].border-red-500::-webkit-calendar-picker-indicator {
 .progress-bar-fill.error {
   background-color: #ef4444;
 }
-
-

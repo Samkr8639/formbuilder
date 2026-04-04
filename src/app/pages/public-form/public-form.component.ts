@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment.development';
 
 interface PublicFormField {
   fieldId: number;
@@ -31,10 +32,13 @@ interface PublicForm {
   styleUrls: ['./public-form.component.css']
 })
 export class PublicFormComponent implements OnInit {
-  private apiUrl = 'http://localhost:5000/api/public';
+  private apiUrl = environment.apiUrl + '/public';
+  private uploadUrl = environment.apiUrl + '/upload';
 
   form = signal<PublicForm | null>(null);
   formData = signal<{ [key: string]: any }>({});
+  // Track raw File objects separately for server upload
+  private pendingFiles: { [fieldId: string]: File } = {};
   isLoading = signal(true);
   isSubmitting = signal(false);
   submitted = signal(false);
@@ -91,10 +95,39 @@ export class PublicFormComponent implements OnInit {
 
   handleFileChange(fieldId: number, event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    this.handleInputChange(fieldId, file?.name || '');
+    if (file) {
+      // Keep file reference for server upload on submit
+      this.pendingFiles[fieldId.toString()] = file;
+      // Set a visual placeholder in formData immediately
+      this.handleInputChange(fieldId, `📎 ${file.name}`);
+    } else {
+      delete this.pendingFiles[fieldId.toString()];
+      this.handleInputChange(fieldId, '');
+    }
   }
 
-  onSubmit(e: Event): void {
+  /** Upload all pending files to the server and replace placeholders with URLs */
+  private async uploadPendingFiles(): Promise<void> {
+    const entries = Object.entries(this.pendingFiles);
+    for (const [fieldIdStr, file] of entries) {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+
+      try {
+        const result = await this.http
+          .post<{ fileUrl: string }>(this.uploadUrl, formDataUpload)
+          .toPromise();
+        if (result?.fileUrl) {
+          // Replace the placeholder with the real URL in formData
+          this.formData.update(data => ({ ...data, [fieldIdStr]: result.fileUrl }));
+        }
+      } catch {
+        throw new Error(`Failed to upload file: ${file.name}`);
+      }
+    }
+  }
+
+  async onSubmit(e: Event): Promise<void> {
     e.preventDefault();
     const form = this.form();
     if (!form) return;
@@ -114,29 +147,33 @@ export class PublicFormComponent implements OnInit {
     this.errorMessage.set('');
     this.isSubmitting.set(true);
 
-    // Build labeled response data
-    const responseData: { [key: string]: any } = {};
-    form.formFields.forEach(field => {
-      responseData[field.label] = this.formData()[field.fieldId.toString()] || '';
-    });
+    try {
+      // Step 1: Upload all pending files and get URLs
+      await this.uploadPendingFiles();
 
-    this.http.post(`${this.apiUrl}/form/${this.slug}/submit`, {
-      responseData
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.submitted.set(true);
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        this.errorMessage.set(err.error?.message || 'Failed to submit. Please try again.');
-      }
-    });
+      // Step 2: Build labeled response data (now file fields contain URLs)
+      const responseData: { [key: string]: any } = {};
+      form.formFields.forEach(field => {
+        responseData[field.label] = this.formData()[field.fieldId.toString()] || '';
+      });
+
+      // Step 3: Submit the form
+      await this.http.post(`${this.apiUrl}/form/${this.slug}/submit`, {
+        responseData
+      }).toPromise();
+
+      this.isSubmitting.set(false);
+      this.submitted.set(true);
+    } catch (err: any) {
+      this.isSubmitting.set(false);
+      this.errorMessage.set(err?.error?.message || err?.message || 'Failed to submit. Please try again.');
+    }
   }
 
   resetForm(): void {
     this.submitted.set(false);
     this.formData.set({});
+    this.pendingFiles = {};
     this.errorMessage.set('');
   }
 }

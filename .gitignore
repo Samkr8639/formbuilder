@@ -8,3 +8,4 @@ backend/Properties/
 backend/appsettings.Development.json
 backend/FormCraftAPI.http
 tailwind.config.js.bak
+backend/uploads/

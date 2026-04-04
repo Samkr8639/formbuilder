@@ -16,12 +16,20 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
   @Input() currentForm: Form | any;
   @Input() hasForms: boolean = true;
 
+  Math = Math;
+
   submissions = signal<FormSubmission[]>([]);
   selectedSubmission = signal<FormSubmission | null>(null);
   activeView = signal<'responses' | 'analytics'>('responses');
 
+  // Pagination State
+  currentPage = signal<number>(1);
+  itemsPerPage = signal<number>(10);
+  totalCount = signal<number>(0);
+  totalPages = computed(() => Math.ceil(this.totalCount() / this.itemsPerPage()));
+
   // Analytics computed values
-  totalResponses = computed(() => this.submissions().length);
+  totalResponses = computed(() => this.totalCount());
 
   responsesOverTime = computed(() => {
     const subs = this.submissions();
@@ -96,11 +104,30 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
   constructor(private formService: FormService, private backendService: BackendService) { }
 
   ngOnInit(): void {
-    this.loadSubmissions();
+    this.refresh();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['currentForm'] && !changes['currentForm'].firstChange) {
+      this.refresh();
+    }
+  }
+
+  refresh(): void {
+    this.currentPage.set(1);
+    this.loadSubmissions();
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
+      this.loadSubmissions();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
       this.loadSubmissions();
     }
   }
@@ -108,19 +135,24 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
   private loadSubmissions(): void {
     if (this.currentForm?.formId) {
       // Fetch from backend API
-      this.backendService.getSubmissions(this.currentForm.formId).subscribe({
-        next: (subs) => this.submissions.set(subs),
+      this.backendService.getSubmissions(this.currentForm.formId, this.currentPage(), this.itemsPerPage()).subscribe({
+        next: (response) => {
+          this.submissions.set(response.data);
+          this.totalCount.set(response.meta.total);
+        },
         error: () => {
           // Fallback to local storage
           if (this.currentForm?.id) {
             const saved = this.formService.getSubmissions(this.currentForm.id);
             this.submissions.set(saved);
+            this.totalCount.set(saved.length);
           }
         }
       });
     } else if (this.currentForm?.id) {
       const savedSubmissions = this.formService.getSubmissions(this.currentForm.id);
       this.submissions.set(savedSubmissions);
+      this.totalCount.set(savedSubmissions.length);
     }
   }
 
@@ -190,28 +222,68 @@ export class ResponsesPanelComponent implements OnInit, OnChanges {
     return value.join(', ');
   }
 
+  isImage(value: any): boolean {
+    if (typeof value !== 'string') return false;
+    if (value.startsWith('data:image/')) return true;
+    // Check for HTTP URLs pointing to common image extensions
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+    try {
+      const url = new URL(value);
+      return imageExtensions.some(ext => url.pathname.toLowerCase().endsWith(ext));
+    } catch {
+      return false;
+    }
+  }
+
+  isFileUrl(value: any): boolean {
+    if (typeof value !== 'string') return false;
+    try {
+      const url = new URL(value);
+      return url.pathname.includes('/uploads/');
+    } catch {
+      return false;
+    }
+  }
+
   getFieldValue(data: any, field: any): any {
     return data[field.id] ?? data[field.label] ?? data[field.fieldId];
   }
 
-  deleteResponse(formId: string): void {
+  deleteResponse(submissionId: string): void {
     Swal.fire({
       title: "Are you sure?",
       text: "This response will be permanently deleted!",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes, delete it!"
     }).then((result) => {
       if (result.isConfirmed) {
-        const submission = this.submissions().find(form => form.id === formId);
-        this.formService.removeSubmission(this.currentForm.id, submission?.id);
-        this.submissions.update(submissions =>
-          submissions.filter(sub => sub.id !== formId)
-        );
-        this.closeResponse();
-        Swal.fire({ title: "Deleted!", text: "The response has been deleted.", icon: "success" });
+        const formId = this.currentForm?.formId;
+        const numericSubmissionId = parseInt(submissionId, 10);
+
+        if (formId && !isNaN(numericSubmissionId)) {
+          // Call backend DELETE endpoint
+          this.backendService.deleteSubmission(formId, numericSubmissionId).subscribe({
+            next: () => {
+              this.submissions.update(subs => subs.filter(s => s.id !== submissionId));
+              this.totalCount.update(c => c - 1);
+              this.closeResponse();
+              Swal.fire({ title: "Deleted!", text: "The response has been deleted.", icon: "success", timer: 1500, showConfirmButton: false });
+            },
+            error: () => {
+              Swal.fire({ title: "Error", text: "Failed to delete. Please try again.", icon: "error" });
+            }
+          });
+        } else {
+          // Fallback: local-only delete (no backend formId available)
+          this.formService.removeSubmission(this.currentForm.id, submissionId);
+          this.submissions.update(subs => subs.filter(s => s.id !== submissionId));
+          this.totalCount.update(c => c - 1);
+          this.closeResponse();
+          Swal.fire({ title: "Deleted!", text: "The response has been deleted.", icon: "success", timer: 1500, showConfirmButton: false });
+        }
       }
     });
   }

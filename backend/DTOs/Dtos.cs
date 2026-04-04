@@ -117,3 +117,23 @@ public class SubmissionDto
     public string? SubmittedBy { get; set; }
     public DateTime SubmittedAt { get; set; }
 }
+
+public class UpsertSubmissionDto
+{
+    public int? SubmissionId { get; set; }
+    [Required]
+    public object ResponseData { get; set; } = null!;
+    public string? SubmittedBy { get; set; }
+}
+
+public class PaginationMeta
+{
+    public int Total { get; set; }
+    public int Page { get; set; }
+}
+
+public class PaginatedResponse<T>
+{
+    public IEnumerable<T> Data { get; set; } = new List<T>();
+    public PaginationMeta Meta { get; set; } = new PaginationMeta();
+}
