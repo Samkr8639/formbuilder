@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterOutlet, Router } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { FormBuilderComponent } from './components/form-builder/form-builder.component';
 import { ResponsesPanelComponent } from './components/responses-panel/responses-panel.component';
 import { ThemesPanelComponent, ThemeUpdate } from './components/themes-panel/themes-panel.component';
@@ -87,6 +87,15 @@ export class AppComponent implements OnInit {
     if (this.authService.isLoggedIn()) {
       this.loadFormsFromBackend();
     }
+
+    // Reload forms seamlessly when navigating back to '/' (e.g. after login or register)
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd && event.urlAfterRedirects === '/') {
+        if (this.authService.isLoggedIn() && this.forms().length === 0) {
+          this.loadFormsFromBackend();
+        }
+      }
+    });
   }
 
   // Helper method to format dates

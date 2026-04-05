@@ -39,7 +39,7 @@
           </div>
         }
 
-        <form (ngSubmit)="onSubmit()" class="auth-form">
+        <form #registerForm="ngForm" (ngSubmit)="onSubmit(registerForm)" class="auth-form">
           <div class="form-group">
             <label for="fullName">Full Name</label>
             <div class="input-wrapper">
@@ -49,11 +49,25 @@
                 type="text"
                 [(ngModel)]="fullName"
                 name="fullName"
+                #fullNameInput="ngModel"
                 placeholder="John Doe"
                 autocomplete="name"
+                (blur)="trimWhitespace('fullName')"
                 required
+                minlength="2"
+                maxlength="50"
               />
             </div>
+            @if (fullNameInput.invalid && (fullNameInput.dirty || fullNameInput.touched)) {
+              <div class="field-error">
+                @if (fullNameInput.errors?.['required']) {
+                  <small>Full name is required.</small>
+                }
+                @if (fullNameInput.errors?.['minlength']) {
+                  <small>Full name must be at least 2 characters long.</small>
+                }
+              </div>
+            }
           </div>
 
           <div class="form-group">
@@ -65,11 +79,29 @@
                 type="email"
                 [(ngModel)]="email"
                 name="email"
+                #emailInput="ngModel"
                 placeholder="you@example.com"
                 autocomplete="email"
+                (blur)="trimWhitespace('email')"
                 required
+                pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
               />
             </div>
+            @if (emailInput.invalid && (emailInput.dirty || emailInput.touched)) {
+              <div class="field-error">
+                @if (emailInput.errors?.['required']) {
+                  <small>Email is required.</small>
+                }
+                @if (emailInput.errors?.['pattern']) {
+                  <small>Please enter a valid email address.</small>
+                }
+              </div>
+            }
+            @if (apiEmailError()) {
+              <div class="field-error">
+                <small><i class="fas fa-exclamation-circle"></i> {{ apiEmailError() }}</small>
+              </div>
+            }
           </div>
 
           <div class="form-row">
@@ -82,14 +114,55 @@
                   [type]="showPassword() ? 'text' : 'password'"
                   [(ngModel)]="password"
                   name="password"
-                  placeholder="Min 6 characters"
+                  #passwordInput="ngModel"
+                  placeholder="Min 8 characters"
                   autocomplete="new-password"
                   required
+                  minlength="8"
                 />
                 <button type="button" class="toggle-password" (click)="togglePassword()">
                   <i [class]="showPassword() ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                 </button>
               </div>
+              @if (passwordInput.invalid && (passwordInput.dirty || passwordInput.touched)) {
+                <div class="field-error">
+                  @if (passwordInput.errors?.['required']) {
+                    <small>Password is required.</small>
+                  }
+                </div>
+              }
+              
+              <!-- Password Strength Meter -->
+              @if (password.length > 0) {
+                <div class="pwd-strength-container">
+                  <div class="pwd-strength-bar">
+                    <div class="pwd-strength-fill" [style.width.%]="passwordStrengthWidth()" [style.backgroundColor]="passwordStrengthColor()"></div>
+                  </div>
+                  <div class="pwd-strength-label" [style.color]="passwordStrengthColor()">
+                    {{ passwordStrengthLabel() }}
+                  </div>
+                </div>
+
+                <!-- Password Requirements Checklist -->
+                <div class="pwd-requirements">
+                  <div class="requirement" [class.met]="hasMinLength()">
+                    <i class="fas" [class.fa-check]="hasMinLength()" [class.fa-circle]="!hasMinLength()"></i>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div class="requirement" [class.met]="hasUpperCase()">
+                    <i class="fas" [class.fa-check]="hasUpperCase()" [class.fa-circle]="!hasUpperCase()"></i>
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div class="requirement" [class.met]="hasNumber()">
+                    <i class="fas" [class.fa-check]="hasNumber()" [class.fa-circle]="!hasNumber()"></i>
+                    <span>One number</span>
+                  </div>
+                  <div class="requirement" [class.met]="hasSpecialChar()">
+                    <i class="fas" [class.fa-check]="hasSpecialChar()" [class.fa-circle]="!hasSpecialChar()"></i>
+                    <span>One special character</span>
+                  </div>
+                </div>
+              }
             </div>
 
             <div class="form-group">
@@ -101,15 +174,27 @@
                   [type]="showPassword() ? 'text' : 'password'"
                   [(ngModel)]="confirmPassword"
                   name="confirmPassword"
+                  #confirmPasswordInput="ngModel"
                   placeholder="Re-enter password"
                   autocomplete="new-password"
                   required
+                  minlength="8"
                 />
               </div>
+              @if (confirmPasswordInput.invalid && (confirmPasswordInput.dirty || confirmPasswordInput.touched)) {
+                <div class="field-error">
+                  <small>Please confirm your password.</small>
+                </div>
+              }
+              @if (password !== confirmPassword && confirmPasswordInput.touched) {
+                <div class="field-error">
+                  <small>Passwords do not match.</small>
+                </div>
+              }
             </div>
           </div>
 
-          <button type="submit" class="submit-btn" [disabled]="isLoading()">
+          <button type="submit" class="submit-btn" [disabled]="isLoading() || registerForm.invalid || !allRequirementsMet() || password !== confirmPassword">
             @if (isLoading()) {
               <i class="fas fa-spinner fa-spin"></i> Creating account...
             } @else {

@@ -178,6 +178,24 @@
   outline: none !important;
 }
 
+.auth-form input.ng-invalid.ng-touched {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.auth-form input.ng-invalid.ng-touched:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  margin-left: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
 .toggle-password {
   position: absolute;
   right: 12px;
@@ -239,6 +257,66 @@
 
 .auth-footer a:hover {
   text-decoration: underline;
+}
+
+/* Password Strength & Requirements UI */
+.pwd-strength-container {
+  margin-top: 10px;
+}
+
+.pwd-strength-bar {
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.pwd-strength-fill {
+  height: 100%;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.pwd-strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.4s ease;
+}
+
+.pwd-requirements {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: #f9fafb;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.requirement {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s ease;
+}
+
+.requirement i {
+  font-size: 0.7rem;
+  transition: color 0.3s ease;
+}
+
+.requirement.met {
+  color: #10b981;
+}
+
+.requirement.met i {
+  color: #10b981;
 }
 
 @media (max-width: 768px) {

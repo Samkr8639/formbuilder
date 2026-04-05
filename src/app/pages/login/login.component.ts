@@ -17,6 +17,7 @@ export class LoginComponent {
   showPassword = signal(false);
   isLoading = signal(false);
   errorMessage = signal('');
+  apiAuthError = signal('');
 
   constructor(private authService: AuthService, private router: Router) {
     // Redirect if already logged in
@@ -25,14 +26,21 @@ export class LoginComponent {
     }
   }
 
-  onSubmit(): void {
-    if (!this.email || !this.password) {
-      this.errorMessage.set('Please fill in all fields');
+  trimWhitespace(): void {
+    this.email = this.email.trim();
+  }
+
+  onSubmit(form: any): void {
+    if (form.invalid) {
+      // Mark all fields as touched to trigger error messages
+      Object.values(form.controls).forEach((control: any) => control.markAsTouched());
+      this.errorMessage.set('Please fix the errors in the form before submitting.');
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set('');
+    this.apiAuthError.set('');
 
     this.authService.login(this.email, this.password).subscribe({
       next: () => {
@@ -41,7 +49,11 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.message);
+        if (err.message && (err.message.toLowerCase().includes('invalid email or password') || err.message.toLowerCase().includes('account is deactivated'))) {
+          this.apiAuthError.set(err.message);
+        } else {
+          this.errorMessage.set(err.message);
+        }
       }
     });
   }

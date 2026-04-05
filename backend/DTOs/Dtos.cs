@@ -10,7 +10,8 @@ public class RegisterDto
     [Required, EmailAddress, MaxLength(150)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, MinLength(6)]
+    [Required, MinLength(8)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]).{8,}$", ErrorMessage = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
     public string Password { get; set; } = string.Empty;
 }
 
@@ -34,7 +35,8 @@ public class ResetPasswordDto
     [Required]
     public string Token { get; set; } = string.Empty;
 
-    [Required, MinLength(6)]
+    [Required, MinLength(8)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]).{8,}$", ErrorMessage = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
     public string NewPassword { get; set; } = string.Empty;
 }
 
