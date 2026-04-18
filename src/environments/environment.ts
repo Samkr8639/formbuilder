@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: '/api' // Adjust this according to your production API url routing
+  apiUrl: 'https://formbuilder-production-50cb.up.railway.app/api'
 };
