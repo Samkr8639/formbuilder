@@ -8,6 +8,13 @@ using FormCraftAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Bind to PORT provided by Railway dynamically
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
+
 // ---- Database (MySQL via Pomelo) ----
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
