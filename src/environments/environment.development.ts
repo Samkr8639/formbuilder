@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5000/api' // Adjust this according to your local .NET API url
+  apiUrl: 'https://formbuilder-production-50cb.up.railway.app/api'
 };
