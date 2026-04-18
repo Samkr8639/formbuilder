@@ -52,6 +52,8 @@ export class AppComponent implements OnInit {
   shareFormTitle = signal('');
   shareFormSlug = signal('');
   currentFormResponseCount = signal<number>(0);
+  hasUnreadResponses = signal<boolean>(false);
+  private lastSeenCounts: Record<string, number> = {};
 
 
   filteredForms = computed(() => {
@@ -97,6 +99,16 @@ export class AppComponent implements OnInit {
         }
       }
     });
+
+    // Initialize lastSeenCounts from localStorage
+    const saved = localStorage.getItem('formcraft_seen_counts');
+    if (saved) {
+      try {
+        this.lastSeenCounts = JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing seen counts:', e);
+      }
+    }
   }
 
   // Helper method to format dates
@@ -359,16 +371,30 @@ export class AppComponent implements OnInit {
 }
 
 private fetchResponseCount(form: Form): void {
+  const checkNewResponses = (count: number) => {
+    this.currentFormResponseCount.set(count);
+    const formId = form.formId?.toString() || form.id || '';
+    const lastSeen = this.lastSeenCounts[formId] || 0;
+    
+    // Only show unread if count has increased AND we are not currently on the responses tab
+    if (count > lastSeen && this.activeTab() !== 'responses') {
+      this.hasUnreadResponses.set(true);
+    } else {
+      this.hasUnreadResponses.set(false);
+    }
+  };
+
   if (form.formId) {
     this.backendService.getSubmissions(form.formId, 1, 1).subscribe({
-      next: (res) => this.currentFormResponseCount.set(res.meta.total),
+      next: (res) => checkNewResponses(res.meta.total),
       error: () => this.currentFormResponseCount.set(0)
     });
   } else if (form.id) {
     const saved = this.formService.getSubmissions(form.id);
-    this.currentFormResponseCount.set(saved.length);
+    checkNewResponses(saved.length);
   } else {
     this.currentFormResponseCount.set(0);
+    this.hasUnreadResponses.set(false);
   }
 }
 
@@ -431,7 +457,18 @@ private applyFormTheme(theme: FormTheme): void {
    
    // Refresh response count when visiting the responses tab
    if (tab === 'responses') {
-     this.fetchResponseCount(this.currentForm());
+     const form = this.currentForm();
+     const formId = form.formId?.toString() || form.id || '';
+     
+     // Mark all as seen
+     this.fetchResponseCount(form);
+     
+     // Update lastSeenCounts
+     setTimeout(() => {
+       this.lastSeenCounts[formId] = this.currentFormResponseCount();
+       localStorage.setItem('formcraft_seen_counts', JSON.stringify(this.lastSeenCounts));
+       this.hasUnreadResponses.set(false);
+     }, 100);
    }
   }
 
