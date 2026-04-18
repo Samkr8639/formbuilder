@@ -159,9 +159,15 @@
           Builder
         </button>
         <button
-          [class]="'px-4 py-2 rounded-lg ' + (activeTab() === 'responses' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"
+          [class]="'px-4 py-2 rounded-lg flex items-center justify-center gap-2 ' + (activeTab() === 'responses' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"
           (click)="activeTabs('responses')">
-          Responses
+          <span>Responses</span>
+          @if (currentFormResponseCount() > 0) {
+            <span class="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold rounded-full"
+                  [class]="activeTab() === 'responses' ? 'bg-white text-primary' : 'bg-primary text-white'">
+              {{ currentFormResponseCount() > 99 ? '99+' : currentFormResponseCount() }}
+            </span>
+          }
         </button>
         <button
           [class]="'px-4 py-2 rounded-lg ' + (activeTab() === 'themes' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700')"

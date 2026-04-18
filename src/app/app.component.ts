@@ -51,6 +51,7 @@ export class AppComponent implements OnInit {
   isShareDialogOpen = signal(false);
   shareFormTitle = signal('');
   shareFormSlug = signal('');
+  currentFormResponseCount = signal<number>(0);
 
 
   filteredForms = computed(() => {
@@ -150,6 +151,7 @@ export class AppComponent implements OnInit {
         // Auto-select the first form if none is selected
         if (forms.length > 0 && !this.currentForm().formId) {
           this.currentForm.set(forms[0]);
+          this.fetchResponseCount(forms[0]);
         }
       },
       error: (error) => {
@@ -350,6 +352,23 @@ export class AppComponent implements OnInit {
     
     // Force a clean theme application
     this.applyFormTheme(selectedForm.theme);
+    
+    // Fetch response count for badge
+    this.fetchResponseCount(selectedForm);
+  }
+}
+
+private fetchResponseCount(form: Form): void {
+  if (form.formId) {
+    this.backendService.getSubmissions(form.formId, 1, 1).subscribe({
+      next: (res) => this.currentFormResponseCount.set(res.meta.total),
+      error: () => this.currentFormResponseCount.set(0)
+    });
+  } else if (form.id) {
+    const saved = this.formService.getSubmissions(form.id);
+    this.currentFormResponseCount.set(saved.length);
+  } else {
+    this.currentFormResponseCount.set(0);
   }
 }
 
@@ -408,6 +427,11 @@ private applyFormTheme(theme: FormTheme): void {
    }
    else{
     this.isBuilderTab.set(true);
+   }
+   
+   // Refresh response count when visiting the responses tab
+   if (tab === 'responses') {
+     this.fetchResponseCount(this.currentForm());
    }
   }
 
