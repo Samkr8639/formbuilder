@@ -40,10 +40,10 @@
   <!-- Form -->
   @if (!isLoading() && form() && !submitted()) {
     <div class="form-container" 
-         [style.--primary-color]="form()!.theme?.primaryColor || '#4f46e5'"
-         [style.--bg-color]="form()!.theme?.backgroundColor || '#ffffff'">
+         [style.--primary-color]="form()!.theme.primaryColor || '#4f46e5'"
+         [style.--bg-color]="form()!.theme.backgroundColor || '#ffffff'">
       
-      <div class="form-header" [style.background]="'linear-gradient(135deg, ' + (form()!.theme?.primaryColor || '#4f46e5') + ', ' + (form()!.theme?.primaryColor || '#4f46e5') + 'dd)'">
+      <div class="form-header" [style.background]="'linear-gradient(135deg, ' + (form()!.theme.primaryColor || '#4f46e5') + ', ' + (form()!.theme.primaryColor || '#4f46e5') + 'dd)'">
         <div class="form-brand">
           <i class="fas fa-cube"></i>
           <span>FormCraft</span>
@@ -180,7 +180,7 @@
         }
 
         <button type="submit" class="submit-btn" [disabled]="isSubmitting()"
-                [style.background]="'linear-gradient(135deg, ' + (form()!.theme?.primaryColor || '#4f46e5') + ', ' + (form()!.theme?.primaryColor || '#4f46e5') + 'cc)'">
+                [style.background]="'linear-gradient(135deg, ' + (form()!.theme.primaryColor || '#4f46e5') + ', ' + (form()!.theme.primaryColor || '#4f46e5') + 'cc)'">
           @if (isSubmitting()) {
             <i class="fas fa-spinner fa-spin"></i> Submitting...
           } @else {
