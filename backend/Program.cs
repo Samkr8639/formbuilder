@@ -34,11 +34,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ---- CORS (allow Angular frontend) ----
+var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://localhost:4300")
+        var origins = new List<string>
+        {
+            "http://localhost:4200",
+            "http://localhost:4300"
+        };
+        if (!string.IsNullOrEmpty(frontendUrl))
+            origins.Add(frontendUrl);
+
+        policy.WithOrigins(origins.ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
